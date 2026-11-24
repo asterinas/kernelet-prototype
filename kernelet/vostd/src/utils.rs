@@ -72,5 +72,4 @@ impl<T> Once<T> {
             None
         }
     }
-
 }

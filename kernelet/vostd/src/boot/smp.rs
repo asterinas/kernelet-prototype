@@ -8,10 +8,7 @@
 //! the image at `vcpu_entry`; it then waits here until the entry function has been
 //! registered, calls it, and falls into the idle loop.
 
-use crate::{
-    cpu::num_cpus,
-    utils::Once,
-};
+use crate::{cpu::num_cpus, utils::Once};
 
 static AP_ENTRY: Once<fn()> = Once::new();
 

@@ -9,8 +9,10 @@
 //! frees whatever the kernelet still holds when the sandbox ends, so a kernelet
 //! that is stopped or evicted with objects alive leaks nothing into the host.
 
-use core::alloc::{GlobalAlloc, Layout};
-use core::sync::atomic::{AtomicU64, Ordering};
+use core::{
+    alloc::{GlobalAlloc, Layout},
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use crate::{abi::svc, time::read_tsc};
 

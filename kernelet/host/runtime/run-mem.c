@@ -52,7 +52,7 @@
 
 #define IMAGE_PATH "/mem.image"
 #define CGROUP "/sys/fs/cgroup/sandbox"
-#define HOG_SWAP_PAGES 30000UL		/* 117 MiB swapped out */
+#define HOG_SWAP_PAGES 30000UL /* 117 MiB swapped out */
 #define HOG_MAX_MB 900UL
 #define HOG_CHUNK (4UL << 20)
 
@@ -81,8 +81,7 @@ static void out(const char *s)
 	tcdrain(1);
 }
 
-__attribute__((format(printf, 1, 2)))
-static void outf(const char *fmt, ...)
+__attribute__((format(printf, 1, 2))) static void outf(const char *fmt, ...)
 {
 	char buf[512];
 	va_list ap;
@@ -96,10 +95,21 @@ static void outf(const char *fmt, ...)
 /* --- /proc/vmstat ------------------------------------------------------ */
 
 static const char *const vm_keys[] = {
-	"pswpout", "pswpin", "pgscan_kswapd", "pgscan_direct", "pgsteal_kswapd",
-	"pgsteal_direct", "pgsteal_anon", "allocstall_normal", "allocstall_dma32",
-	"compact_stall", "compact_migrate_scanned", "thp_fault_alloc",
-	"oom_kill", "pgfault", "workingset_refault_anon",
+	"pswpout",
+	"pswpin",
+	"pgscan_kswapd",
+	"pgscan_direct",
+	"pgsteal_kswapd",
+	"pgsteal_direct",
+	"pgsteal_anon",
+	"allocstall_normal",
+	"allocstall_dma32",
+	"compact_stall",
+	"compact_migrate_scanned",
+	"thp_fault_alloc",
+	"oom_kill",
+	"pgfault",
+	"workingset_refault_anon",
 };
 #define NKEYS (sizeof(vm_keys) / sizeof(vm_keys[0]))
 
@@ -163,7 +173,8 @@ static int wait_kmsg(const char *needle, int timeout_s)
 		}
 		rec[n] = 0;
 		if (strstr(rec, needle)) {
-			snprintf(kmsg_hit, sizeof(kmsg_hit), "%s", strstr(rec, needle));
+			snprintf(kmsg_hit, sizeof(kmsg_hit), "%s",
+				 strstr(rec, needle));
 			close(fd);
 			return 0;
 		}
@@ -210,7 +221,8 @@ static void hog(void)
  */
 static void preempt_with_competitor(long pid, int ms)
 {
-	struct timespec t = { .tv_sec = ms / 1000, .tv_nsec = (ms % 1000) * 1000000L };
+	struct timespec t = { .tv_sec = ms / 1000,
+			      .tv_nsec = (ms % 1000) * 1000000L };
 	cpu_set_t one, all;
 	pid_t comp;
 	int i;
@@ -221,7 +233,8 @@ static void preempt_with_competitor(long pid, int ms)
 	for (i = 0; i < 2; i++)
 		CPU_SET(i, &all);
 	if (sched_setaffinity((pid_t)pid, sizeof(one), &one) != 0) {
-		outf("RUN-MEM: cannot pin the carrier of vcpu 1: %s\n", strerror(errno));
+		outf("RUN-MEM: cannot pin the carrier of vcpu 1: %s\n",
+		     strerror(errno));
 		return;
 	}
 	comp = fork();
@@ -236,7 +249,8 @@ static void preempt_with_competitor(long pid, int ms)
 	kill(comp, SIGKILL);
 	waitpid(comp, NULL, 0);
 	sched_setaffinity((pid_t)pid, sizeof(all), &all);
-	outf("RUN-MEM: preempted the carrier of vcpu 1 for %d ms with a competitor on cpu 1\n", ms);
+	outf("RUN-MEM: preempted the carrier of vcpu 1 for %d ms with a competitor on cpu 1\n",
+	     ms);
 }
 
 #define task_sigline(pid, key, out, len) proc_status_field(pid, key, out, len)
@@ -252,7 +266,8 @@ static void preempt_with_competitor(long pid, int ms)
  */
 static void signal_and_check(long pid, long other)
 {
-	static const int burst[] = { SIGQUIT, SIGABRT, SIGTSTP, SIGTTIN, SIGTTOU };
+	static const int burst[] = { SIGQUIT, SIGABRT, SIGTSTP, SIGTTIN,
+				     SIGTTOU };
 	struct timespec t = { .tv_sec = 0, .tv_nsec = 200 * 1000 * 1000 };
 	char ign[32], blk[32], ign_root[32];
 	unsigned int i, j;
@@ -270,8 +285,11 @@ static void signal_and_check(long pid, long other)
 	nanosleep(&t, NULL);
 	s = task_state(pid);
 	outf("RUN-MEM: after SIGTERM and SIGUSR1 the carrier of vcpu 1 is %s (state %c), the carrier of vcpu 0 %s\n",
-	     kill((pid_t)pid, 0) == 0 && s != 'Z' && s != '?' ? "alive" : "gone", s,
-	     kill((pid_t)other, 0) == 0 && task_state(other) != 'Z' ? "alive" : "gone");
+	     kill((pid_t)pid, 0) == 0 && s != 'Z' && s != '?' ? "alive" :
+								"gone",
+	     s,
+	     kill((pid_t)other, 0) == 0 && task_state(other) != 'Z' ? "alive" :
+								      "gone");
 
 	for (j = 0; j < 2000; j++)
 		for (i = 0; i < sizeof(burst) / sizeof(burst[0]); i++)
@@ -281,8 +299,11 @@ static void signal_and_check(long pid, long other)
 	nanosleep(&t, NULL);
 	s = task_state(pid);
 	outf("RUN-MEM: after 2000 rounds of SIGQUIT, SIGABRT, SIGTSTP, SIGTTIN and SIGTTOU the carrier of vcpu 1 is %s (state %c), the carrier of vcpu 0 %s\n",
-	     kill((pid_t)pid, 0) == 0 && s != 'Z' && s != '?' ? "alive" : "gone", s,
-	     kill((pid_t)other, 0) == 0 && task_state(other) != 'Z' ? "alive" : "gone");
+	     kill((pid_t)pid, 0) == 0 && s != 'Z' && s != '?' ? "alive" :
+								"gone",
+	     s,
+	     kill((pid_t)other, 0) == 0 && task_state(other) != 'Z' ? "alive" :
+								      "gone");
 }
 
 /*
@@ -316,29 +337,36 @@ static void during(struct sandbox *sb, void *arg)
 	(void)arg;
 	if (strcmp(mode, "kill") == 0) {
 		if (cpid > 0 && wait_kmsg("MEM-KILL-ME", 30) == 0) {
-			usleep(500 * 1000);	/* let the sibling fault for a while first */
+			usleep(500 *
+			       1000); /* let the sibling fault for a while first */
 			preempt_with_competitor(cpid, 1500);
 			signal_and_check(cpid, sb->pids[0]);
 			stop_and_continue(cpid);
-			usleep(300 * 1000);	/* and let the check run after the continue */
-			outf("RUN-MEM: killing the carrier of vcpu 1 (pid %ld) from outside\n", cpid);
+			usleep(300 *
+			       1000); /* and let the check run after the continue */
+			outf("RUN-MEM: killing the carrier of vcpu 1 (pid %ld) from outside\n",
+			     cpid);
 			kill((pid_t)cpid, SIGKILL);
 		} else {
 			out("RUN-MEM: could not find the carrier of vcpu 1\n");
 		}
-	} else if (strcmp(mode, "killidle") == 0 || strcmp(mode, "killspin") == 0) {
+	} else if (strcmp(mode, "killidle") == 0 ||
+		   strcmp(mode, "killspin") == 0) {
 		if (cpid > 0 && wait_kmsg("MEM-KILL-READY", 30) == 0) {
 			long long t0;
 
-			usleep(300 * 1000);	/* let it settle where it is */
+			usleep(300 * 1000); /* let it settle where it is */
 			outf("RUN-MEM: the carrier of vcpu 1 (pid %ld) is in state %c (%s); SIGKILL\n",
 			     cpid, task_state(cpid),
-			     strcmp(mode, "killidle") == 0 ? "idle in vcpu_idle" : "running a kernel task");
+			     strcmp(mode, "killidle") == 0 ?
+				     "idle in vcpu_idle" :
+				     "running a kernel task");
 			t0 = now_ms();
 			kill((pid_t)cpid, SIGKILL);
 			// Exited: a sandbox read would return; every carrier is gone.
 			if (sandbox_exited(sb, 10000))
-				outf("RUN-MEM: the sandbox ended %lld ms after the kill\n", now_ms() - t0);
+				outf("RUN-MEM: the sandbox ended %lld ms after the kill\n",
+				     now_ms() - t0);
 			else
 				out("RUN-MEM: the sandbox did not end within 10 s of the kill\n");
 		} else {
@@ -378,8 +406,10 @@ int main(void)
 	fd = open("/proc/sys/vm/mmap_min_addr", O_RDONLY);
 	if (fd >= 0) {
 		char b[32] = "";
-		if (read(fd, b, sizeof(b) - 1) > 0 && strtoul(b, NULL, 0) > 0x10000) {
-			outf("RUN-MEM: vm.mmap_min_addr is %s, above the area's 0x10000\n", b);
+		if (read(fd, b, sizeof(b) - 1) > 0 &&
+		    strtoul(b, NULL, 0) > 0x10000) {
+			outf("RUN-MEM: vm.mmap_min_addr is %s, above the area's 0x10000\n",
+			     b);
 			return 1;
 		}
 		close(fd);
@@ -387,7 +417,8 @@ int main(void)
 
 	if (strcmp(mode, "pressure") == 0) {
 		if (syscall(SYS_swapon, "/dev/vda", 0) != 0) {
-			outf("RUN-MEM: swapon /dev/vda failed: %s\n", strerror(errno));
+			outf("RUN-MEM: swapon /dev/vda failed: %s\n",
+			     strerror(errno));
 			return 1;
 		}
 		out("RUN-MEM: swap on /dev/vda\n");
@@ -409,7 +440,8 @@ int main(void)
 		vmstat_print("whole run, vmstat delta", v0, v1);
 	}
 	refs = module_references("endovisor");
-	outf("RUN-MEM: no carrier left (module references: %d)\n", refs < 0 ? 0 : refs);
+	outf("RUN-MEM: no carrier left (module references: %d)\n",
+	     refs < 0 ? 0 : refs);
 	out("RUN-MEM: done\n");
 	return 0;
 }

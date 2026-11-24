@@ -39,11 +39,13 @@
 #define KLET_ABI_VERSION 6ULL
 
 /* Errors of the vm_* services, returned negated. */
-#define KLET_INVALID	1	/* an address outside the area, a bad argument, a space not this kernelet's, an entry already present */
-#define KLET_NOT_OWNED	2	/* a frame outside the grant */
-#define KLET_LIMIT	3	/* the configured maximum of spaces */
-#define KLET_NOMEM	5	/* vm_create: Linux could not allocate the address space */
-#define KLET_STATE	6	/* vm_wait with the vCPU's interrupts off: the sleeping contract */
+#define KLET_INVALID \
+	1 /* an address outside the area, a bad argument, a space not this kernelet's, an entry already present */
+#define KLET_NOT_OWNED 2 /* a frame outside the grant */
+#define KLET_LIMIT 3 /* the configured maximum of spaces */
+#define KLET_NOMEM 5 /* vm_create: Linux could not allocate the address space */
+#define KLET_STATE \
+	6 /* vm_wait with the vCPU's interrupts off: the sleeping contract */
 /* KLET_LIMIT is also a vm_map whose page-table page Linux could not allocate. */
 
 /*
@@ -51,16 +53,17 @@
  * builds Linux's pgprot_t from its own constants; a kernelet never supplies
  * raw page-table bits.
  */
-#define KLET_PROT_READ		(1u << 0)
-#define KLET_PROT_WRITE		(1u << 1)
-#define KLET_PROT_EXEC		(1u << 2)
-#define KLET_PROT_CACHE_SHIFT	4	/* 3 bits; only 0, write-back, is accepted */
-#define KLET_PROT_CACHE_MASK	(7u << KLET_PROT_CACHE_SHIFT)
-#define KLET_PROT_LARGE		(1u << 8)	/* a 2 MiB page: refused in this version */
+#define KLET_PROT_READ (1u << 0)
+#define KLET_PROT_WRITE (1u << 1)
+#define KLET_PROT_EXEC (1u << 2)
+#define KLET_PROT_CACHE_SHIFT 4 /* 3 bits; only 0, write-back, is accepted */
+#define KLET_PROT_CACHE_MASK (7u << KLET_PROT_CACHE_SHIFT)
+#define KLET_PROT_LARGE (1u << 8) /* a 2 MiB page: refused in this version */
 /* Test hook, honoured only with klet_test_hooks=1: sleep inside vm_map. */
-#define KLET_PROT_TEST_SLEEP	(1u << 31)
-#define KLET_PROT_VALID		(KLET_PROT_READ | KLET_PROT_WRITE | KLET_PROT_EXEC | \
-				 KLET_PROT_CACHE_MASK | KLET_PROT_LARGE | KLET_PROT_TEST_SLEEP)
+#define KLET_PROT_TEST_SLEEP (1u << 31)
+#define KLET_PROT_VALID                                      \
+	(KLET_PROT_READ | KLET_PROT_WRITE | KLET_PROT_EXEC | \
+	 KLET_PROT_CACHE_MASK | KLET_PROT_LARGE | KLET_PROT_TEST_SLEEP)
 
 /* How many address spaces one kernelet may have at once. */
 #define KLET_MAX_SPACES 64
@@ -74,8 +77,8 @@
  * validate a kernelet pointer.
  */
 struct klet_space_rec {
-	u64 root_paddr;		/* __pa(mm->pgd); 0 while the slot is free */
-	u64 gen;		/* bumped by every vm_create of this slot */
+	u64 root_paddr; /* __pa(mm->pgd); 0 while the slot is free */
+	u64 gen; /* bumped by every vm_create of this slot */
 	/* writer 63, waiters 62, writer-waiting 61, reader count below */
 	u64 lock[KLET_SPACE_LOCK_WORDS];
 };
@@ -86,22 +89,23 @@ struct klet_space_rec {
  * part of the design: a kernel proper never needs them.
  */
 struct klet_mem_stats {
-	atomic64_t faults;		/* calls of the area's ->fault */
-	atomic64_t mkwrites;		/* calls of the area's ->pfn_mkwrite */
-	atomic64_t reported;		/* of those, recorded as a tenant exception */
-	atomic64_t kernel_faults;	/* kernel-mode accesses, answered SIGBUS */
-	atomic64_t maps;		/* vm_map calls */
-	atomic64_t unmaps;		/* vm_unmap calls */
-	atomic64_t unmapped;		/* entries cleared by them */
-	atomic64_t protects;		/* vm_protect calls */
-	atomic64_t protected_;		/* entries rewritten by them */
-	atomic64_t flushes;		/* vm_flush calls over a range */
-	atomic64_t flush_alls;		/* vm_flush calls for everything */
-	atomic64_t waits;		/* vm_wait calls */
-	atomic64_t wait_sleeps;		/* of those, ones that slept */
-	atomic64_t wakes;		/* vm_wake calls */
-	atomic64_t spaces;		/* spaces created */
-	atomic64_t lifted;		/* vm_* entered with the kernelet's mirror raised, lifted */
+	atomic64_t faults; /* calls of the area's ->fault */
+	atomic64_t mkwrites; /* calls of the area's ->pfn_mkwrite */
+	atomic64_t reported; /* of those, recorded as a tenant exception */
+	atomic64_t kernel_faults; /* kernel-mode accesses, answered SIGBUS */
+	atomic64_t maps; /* vm_map calls */
+	atomic64_t unmaps; /* vm_unmap calls */
+	atomic64_t unmapped; /* entries cleared by them */
+	atomic64_t protects; /* vm_protect calls */
+	atomic64_t protected_; /* entries rewritten by them */
+	atomic64_t flushes; /* vm_flush calls over a range */
+	atomic64_t flush_alls; /* vm_flush calls for everything */
+	atomic64_t waits; /* vm_wait calls */
+	atomic64_t wait_sleeps; /* of those, ones that slept */
+	atomic64_t wakes; /* vm_wake calls */
+	atomic64_t spaces; /* spaces created */
+	atomic64_t
+		lifted; /* vm_* entered with the kernelet's mirror raised, lifted */
 };
 
 struct klet_boot_args {
@@ -130,10 +134,10 @@ struct klet_boot_args {
 	u64 image_text_lo;
 	u64 image_text_hi;
 	/* Where the address spaces' shared state is. */
-	u64 space_recs;		/* struct klet_space_rec[KLET_MAX_SPACES] */
+	u64 space_recs; /* struct klet_space_rec[KLET_MAX_SPACES] */
 	u64 nr_space_recs;
-	u64 mem_stats;		/* struct klet_mem_stats */
-	u64 pgtable_levels;	/* 4, or 5 under LA57: what vOSTD's walk must follow */
+	u64 mem_stats; /* struct klet_mem_stats */
+	u64 pgtable_levels; /* 4, or 5 under LA57: what vOSTD's walk must follow */
 };
 
 /* The eighteen general registers, in the order vOSTD's GeneralRegs has them. */
@@ -215,8 +219,8 @@ struct klet_vcpu_rec {
 #define KLET_PREEMPT_GUARD_MASK 0x7fffffffu
 
 /* Virtual interrupt lines. */
-#define KLET_VIRQ_TICK  (1u << 0)
-#define KLET_VIRQ_KICK  (1u << 1)
+#define KLET_VIRQ_TICK (1u << 0)
+#define KLET_VIRQ_KICK (1u << 1)
 /* The summary bit for device lines. No device currently raises it. */
 #define KLET_VIRQ_LINES (1u << 2)
 
@@ -260,33 +264,33 @@ struct klet_entry_table {
 };
 
 /* Return values of the user_run service. */
-#define KLET_RUN_SYSCALL	0ULL
-#define KLET_RUN_EXCEPTION	1ULL
-#define KLET_RUN_EVENT		2ULL
+#define KLET_RUN_SYSCALL 0ULL
+#define KLET_RUN_EXCEPTION 1ULL
+#define KLET_RUN_EVENT 2ULL
 
 /* ------------------------------------------------------------------ */
 /* Endovisor-internal types                                           */
 /* ------------------------------------------------------------------ */
 
 /* The tables of the UAPI: registered kinds and live sandboxes. */
-#define KLET_MAX_KINDS		8
-#define KLET_MAX_SANDBOXES	8
+#define KLET_MAX_KINDS 8
+#define KLET_MAX_SANDBOXES 8
 
 /*
  * The grant is one physically contiguous run, allocated at the sandbox's start,
  * of memory_initial bytes in whole 2 MiB units: at most order 10, 4 MiB, the
  * largest run the page allocator gives (MAX_PAGE_ORDER).
  */
-#define KLET_GRANT_UNIT		(2UL << 20)
-#define KLET_GRANT_MAX		(PAGE_SIZE << MAX_PAGE_ORDER)
+#define KLET_GRANT_UNIT (2UL << 20)
+#define KLET_GRANT_MAX (PAGE_SIZE << MAX_PAGE_ORDER)
 
 /*
  * The first bytes of an exec descriptor's file, which the binary-format handler
  * uses only to turn other files away quickly: the file is recognized by its
  * inode, never by these bytes (sandbox.c).
  */
-#define KLET_EXEC_MAGIC		"KLET-EXEC"
-#define KLET_EXEC_MAGIC_LEN	10	/* with its NUL */
+#define KLET_EXEC_MAGIC "KLET-EXEC"
+#define KLET_EXEC_MAGIC_LEN 10 /* with its NUL */
 struct klet_exec_head {
 	char magic[KLET_EXEC_MAGIC_LEN];
 	u16 slot;
@@ -294,7 +298,7 @@ struct klet_exec_head {
 } __packed;
 
 /* Each of the console and log rings. */
-#define KLET_OUT_RING		(64 * 1024)
+#define KLET_OUT_RING (64 * 1024)
 
 /*
  * Every kernelet stack is this big, and they all come from one per-sandbox pool
@@ -330,10 +334,10 @@ struct klet_exec_head {
 
 /* What a carrier is doing. (The sandbox's own states are the UAPI's.) */
 enum klet_cstate {
-	KLET_NEW,	/* the vCPU has not entered the image yet */
-	KLET_RUNNING,	/* the carrier is running kernelet code */
-	KLET_USER,	/* the carrier is in, or on its way to, user mode */
-	KLET_DEAD,	/* the vCPU has stopped or been abandoned */
+	KLET_NEW, /* the vCPU has not entered the image yet */
+	KLET_RUNNING, /* the carrier is running kernelet code */
+	KLET_USER, /* the carrier is in, or on its way to, user mode */
+	KLET_DEAD, /* the vCPU has stopped or been abandoned */
 };
 
 struct klet_inst;
@@ -346,12 +350,14 @@ struct klet_inst;
  */
 struct klet_space {
 	struct klet_inst *inst;
-	unsigned int id;		/* slot + 1; 0 is "no space" */
+	unsigned int id; /* slot + 1; 0 is "no space" */
 	bool live;
 	bool dying;
-	struct mm_struct *mm;		/* the endovisor's mm_users reference, until vm_destroy */
-	struct file *file;		/* the endovisor's reference */
-	unsigned long start, end;	/* the area; found with vma_lookup() on every use */
+	struct mm_struct
+		*mm; /* the endovisor's mm_users reference, until vm_destroy */
+	struct file *file; /* the endovisor's reference */
+	unsigned long start,
+		end; /* the area; found with vma_lookup() on every use */
 	/* Service calls in flight: vm_destroy waits for them. */
 	atomic_t users;
 	/* The range lock's slow path: carriers waiting for a lock word. */
@@ -366,7 +372,7 @@ struct klet_carrier {
 	/* The shared record. Its offset from `hooks` is in the boot arguments. */
 	struct klet_vcpu_rec vrec;
 
-	struct klet_inst *inst;		/* a reference, for as long as the record lives */
+	struct klet_inst *inst; /* a reference, for as long as the record lives */
 	struct task_struct *task;
 	enum klet_cstate state;
 	int vcpu;
@@ -427,8 +433,8 @@ struct klet_carrier {
 	void *fpu_stage;
 
 	/* address spaces */
-	struct mm_struct *blank_mm;	/* the carrier's own, empty one */
-	struct mm_struct *cur_mm;	/* whatever it has adopted */
+	struct mm_struct *blank_mm; /* the carrier's own, empty one */
+	struct mm_struct *cur_mm; /* whatever it has adopted */
 
 	/*
 	 * pt_regs hold the tenant's live registers, because ctx was applied to
@@ -487,16 +493,16 @@ struct klet_forced_rec {
 struct klet_counters {
 	atomic_t evictions;
 	atomic_t ticks;
-	atomic_t watch_fires;		/* requested firings of the watch timer (kicks) */
-	atomic_t kick_ipis;		/* kick IPIs that found their carrier running */
-	atomic_t fires_redirected;	/* requested firings that delivered an upcall */
-	atomic_t fires_elsewhere;	/* ... that found user mode, a service or Linux code */
-	atomic_t fires_masked;		/* ... that found a critical section */
-	atomic_t virqs;			/* upcalls delivered by redirect */
-	atomic_t deferrals;		/* ticks that found the vCPU masked */
+	atomic_t watch_fires; /* requested firings of the watch timer (kicks) */
+	atomic_t kick_ipis; /* kick IPIs that found their carrier running */
+	atomic_t fires_redirected; /* requested firings that delivered an upcall */
+	atomic_t fires_elsewhere; /* ... that found user mode, a service or Linux code */
+	atomic_t fires_masked; /* ... that found a critical section */
+	atomic_t virqs; /* upcalls delivered by redirect */
+	atomic_t deferrals; /* ticks that found the vCPU masked */
 	atomic_t forced_yields;
-	atomic_t yields;		/* voluntary vcpu_yield service calls */
-	atomic_t bad_preempt;		/* involuntary switch-out while masked */
+	atomic_t yields; /* voluntary vcpu_yield service calls */
+	atomic_t bad_preempt; /* involuntary switch-out while masked */
 	atomic_t on_spins;
 	atomic_t yield_tos;
 	atomic_t mm_switches;
@@ -527,25 +533,25 @@ struct klet_image_reloc {
 struct klet_kind {
 	bool used;
 	char name[KLET_NAME_LEN];
-	u8 *image;			// Unrelocated template, including zeroed BSS.
+	u8 *image; // Unrelocated template, including zeroed BSS.
 	size_t image_size;
-	struct page **shared_pages;	// `NULL` for pages private to each instance.
+	struct page **shared_pages; // `NULL` for pages private to each instance.
 	unsigned int nr_pages, nr_segments, nr_relocs;
 	struct klet_image_segment segments[KLET_IMAGE_SEGMENTS];
 	struct klet_image_reloc *relocs;
 	u64 entry_offset;
-	size_t text_size, data_size;	// Shared and private mapped bytes.
-	unsigned long text_lo, text_hi;	// Executable offsets within the image.
+	size_t text_size, data_size; // Shared and private mapped bytes.
+	unsigned long text_lo, text_hi; // Executable offsets within the image.
 	unsigned int nr_sandboxes;
 };
 
 /* The sandbox's view of one virtual CPU, for KLET_GET_STATS. */
 struct klet_vcpu_slot {
-	u32 state;			/* enum klet_vcpu_state, the UAPI's */
-	bool claimed;			/* an exec of its descriptor got past the checks */
+	u32 state; /* enum klet_vcpu_state, the UAPI's */
+	bool claimed; /* an exec of its descriptor got past the checks */
 	pid_t pid;
-	u64 run_ns, stolen_ns;		/* frozen when the carrier is gone */
-	struct file *exec_file;		/* the exec descriptor's file, made lazily */
+	u64 run_ns, stolen_ns; /* frozen when the carrier is gone */
+	struct file *exec_file; /* the exec descriptor's file, made lazily */
 };
 
 /* One of the console and the log: the holder's file and the ring before it. */
@@ -556,18 +562,18 @@ struct klet_out {
 };
 
 struct klet_inst {
-	refcount_t refs;		/* the sandbox file's, and each carrier record's */
+	refcount_t refs; /* the sandbox file's, and each carrier record's */
 	struct klet_kind *kind;
 	void *image_base;
 	struct page **image_pages;
 	const struct klet_entry_table *entry;
 	unsigned long text_lo, text_hi;
 	int slot;
-	struct mutex mutex;		/* the sandbox operations, against each other */
+	struct mutex mutex; /* the sandbox operations, against each other */
 
 	/* KLET_CREATE */
 	u64 memory_initial, memory_max, max_tasks;
-	struct cgroup *cgrp;		/* the sandbox's control group, held */
+	struct cgroup *cgrp; /* the sandbox's control group, held */
 
 	/* the grant */
 	struct page *grant_pages;
@@ -582,7 +588,7 @@ struct klet_inst {
 	/* vCPU 0 waits here until every carrier has arrived */
 	wait_queue_head_t arrive_wq;
 	unsigned int arrived;
-	bool started;			/* the first carrier has arrived */
+	bool started; /* the first carrier has arrived */
 
 	/* carriers */
 	struct list_head carriers;
@@ -606,10 +612,10 @@ struct klet_inst {
 
 	/* the kernelet-stack pool: every stack ever made, busy or free */
 	struct list_head kstack_all;
-	unsigned int kstack_max;	/* the pool's bound: max_tasks + nr_vcpus */
-	unsigned int kstack_made;	/* the pool's size, against its bound */
-	unsigned int kstack_total;	/* stacks made over the sandbox's life */
-	unsigned int kstack_returned;	/* ... and given back to vmalloc */
+	unsigned int kstack_max; /* the pool's bound: max_tasks + nr_vcpus */
+	unsigned int kstack_made; /* the pool's size, against its bound */
+	unsigned int kstack_total; /* stacks made over the sandbox's life */
+	unsigned int kstack_returned; /* ... and given back to vmalloc */
 
 	/*
 	 * The kernelet's heap: every block mem_alloc handed out that mem_free
@@ -618,15 +624,16 @@ struct klet_inst {
 	 */
 	struct klet_heap {
 		spinlock_t lock;
-		void **block;	/* block[n]: the block numbered n, or NULL */
-		u32 *free;	/* the numbers not in use, a stack */
+		void **block; /* block[n]: the block numbered n, or NULL */
+		u32 *free; /* the numbers not in use, a stack */
 		u32 nr_free;
-		u32 size;	/* entries in block[] and free[] */
+		u32 size; /* entries in block[] and free[] */
 	} heap;
-	atomic64_t heap_allocs;		/* blocks handed out */
-	atomic64_t heap_frees;		/* ... freed by the kernelet */
-	atomic64_t heap_reaped;		/* ... freed when the sandbox ended */
-	atomic64_t heap_bad_frees;	/* mem_free of an address that is not a block */
+	atomic64_t heap_allocs; /* blocks handed out */
+	atomic64_t heap_frees; /* ... freed by the kernelet */
+	atomic64_t heap_reaped; /* ... freed when the sandbox ended */
+	atomic64_t
+		heap_bad_frees; /* mem_free of an address that is not a block */
 
 	/*
 	 * The end (sandbox.c, klet_end). `stopped`: the kernel proper powered
@@ -640,7 +647,7 @@ struct klet_inst {
 	bool exited;
 	bool released;
 	bool destroyed;
-	bool exit_claimed;		/* someone is running klet_sandbox_exited() */
+	bool exit_claimed; /* someone is running klet_sandbox_exited() */
 	bool sweep_armed;
 	struct klet_exit exit;
 	wait_queue_head_t exit_wq;
@@ -656,8 +663,8 @@ struct klet_inst {
 
 	atomic64_t service_calls;
 	struct klet_counters n;
-	atomic_t longest_defer_us;	/* the longest deferral, in microseconds */
-	atomic_t longest_tick_gap_us;	/* the longest gap between two ticks of a running watch timer */
+	atomic_t longest_defer_us; /* the longest deferral, in microseconds */
+	atomic_t longest_tick_gap_us; /* the longest gap between two ticks of a running watch timer */
 	atomic_t forced_recorded;
 	struct klet_forced_rec forced_rec[KLET_FORCED_RECORDS];
 
@@ -687,7 +694,8 @@ extern struct klet_totals klet_totals;
 extern const struct klet_services klet_services;
 extern bool klet_mirror;
 
-static inline struct klet_carrier *klet_carrier_of(struct carrier_event_hooks *hooks)
+static inline struct klet_carrier *
+klet_carrier_of(struct carrier_event_hooks *hooks)
 {
 	return container_of(hooks, struct klet_carrier, hooks);
 }
@@ -754,7 +762,7 @@ static inline bool klet_in_image_text(struct klet_inst *inst, unsigned long ip)
 /* ------------------------------------------------------------------ */
 
 enum klet_svc_op {
-	KLET_SVC_NOP,		/* nothing; with a count, the stub measurement */
+	KLET_SVC_NOP, /* nothing; with a count, the stub measurement */
 	KLET_SVC_LOG_WRITE,
 	KLET_SVC_MEM_ALLOC,
 	KLET_SVC_MEM_FREE,
@@ -837,7 +845,8 @@ void klet_image_stop(struct klet_inst *inst);
 /* sandbox.c: KLET_CREATE, the sandbox descriptor, the exec descriptors, the end */
 long klet_sandbox_create(struct klet_create __user *uarg);
 struct linux_binprm;
-struct klet_inst *klet_exec_lookup(struct linux_binprm *bprm, unsigned int *vcpu);
+struct klet_inst *klet_exec_lookup(struct linux_binprm *bprm,
+				   unsigned int *vcpu);
 int klet_exec_claim(struct klet_inst *inst, unsigned int vcpu);
 void klet_exec_unclaim(struct klet_inst *inst, unsigned int vcpu);
 int klet_sandbox_start(struct klet_inst *inst);
@@ -845,7 +854,8 @@ void klet_inst_get(struct klet_inst *inst);
 void klet_inst_put(struct klet_inst *inst);
 void klet_end(struct klet_inst *inst, u32 how, s32 code, u32 reason);
 void klet_sandbox_exited(struct klet_inst *inst);
-void klet_out_write(struct klet_inst *inst, struct klet_out *out, const char *ptr, u64 len);
+void klet_out_write(struct klet_inst *inst, struct klet_out *out,
+		    const char *ptr, u64 len);
 void klet_check_exited_locked(struct klet_inst *inst, bool *claim);
 
 /* main.c: the test hook (module parameters) */
@@ -885,7 +895,8 @@ void klet_watch_fire_now(void);
 /* the kernelet-stack pool, in carrier.c */
 u64 klet_kstack_alloc(struct klet_inst *inst);
 void klet_kstack_put(struct klet_inst *inst, u64 base);
-unsigned int klet_kstack_pool_destroy(struct klet_inst *inst, unsigned int *busy);
+unsigned int klet_kstack_pool_destroy(struct klet_inst *inst,
+				      unsigned int *busy);
 
 /* the heap, in carrier.c */
 void klet_heap_init(struct klet_inst *inst);

@@ -158,7 +158,11 @@ struct PinRunQueue {
 
 impl Scheduler<Task> for PinScheduler {
     fn enqueue(&self, runnable: Arc<Task>, flags: EnqueueFlags) -> Option<CpuId> {
-        let wanted = match runnable.data().downcast_ref::<TaskInfo>().and_then(|i| i.pin) {
+        let wanted = match runnable
+            .data()
+            .downcast_ref::<TaskInfo>()
+            .and_then(|i| i.pin)
+        {
             Some(v) => CpuId::new(v.min(num_cpus() as u32 - 1)),
             None => CpuId::current_racy(),
         };
@@ -257,7 +261,12 @@ fn report(name: &str, samples: &mut [u64]) {
     let p99 = samples[((n * 99) / 100).min(n - 1)];
     println!(
         "MEM-PERF {} n={} median={} p99={} min={} max={}",
-        name, n, med, p99, samples[0], samples[n - 1]
+        name,
+        n,
+        med,
+        p99,
+        samples[0],
+        samples[n - 1]
     );
 }
 
@@ -272,7 +281,12 @@ fn faults(d: &MemStats) -> u64 {
 static FAILED: AtomicBool = AtomicBool::new(false);
 
 fn expect(name: &str, ok: bool, detail: core::fmt::Arguments) {
-    println!("MEM-CHECK {} {} {}", if ok { "ok" } else { "FAIL" }, name, detail);
+    println!(
+        "MEM-CHECK {} {} {}",
+        if ok { "ok" } else { "FAIL" },
+        name,
+        detail
+    );
     if !ok {
         FAILED.store(true, Ordering::Relaxed);
     }
@@ -321,7 +335,8 @@ fn protect_pages(
     while c.protect_next(end - c.virt_addr(), &mut op).is_some() {
         done += 1;
     }
-    c.flusher().issue_tlb_flush(TlbFlushOp::for_range(base..end));
+    c.flusher()
+        .issue_tlb_flush(TlbFlushOp::for_range(base..end));
     c.flusher().dispatch_tlb_flush();
     c.flusher().sync_tlb_flush();
     done
@@ -415,7 +430,10 @@ impl Tenant {
                         expect(
                             "E11 rewind: the tenant's register count kept up with its memory count",
                             false,
-                            format_args!("(register {}, memory {}: its registers were put back)", reg, mem),
+                            format_args!(
+                                "(register {}, memory {}: its registers were put back)",
+                                reg, mem
+                            ),
                         );
                         continue;
                     }
@@ -468,7 +486,10 @@ impl Tenant {
                 // The tree's handler queries the slot and finds the mapping
                 // without read permission: that is the tenant's SIGSEGV.
                 let guard = disable_preempt();
-                let mut c = self.space.cursor(&guard, &(addr..addr + PAGE_SIZE)).unwrap();
+                let mut c = self
+                    .space
+                    .cursor(&guard, &(addr..addr + PAGE_SIZE))
+                    .unwrap();
                 let denied = match c.query().unwrap().1 {
                     Some(VmQueriedItem::MappedRam { prop, .. }) => {
                         !prop.flags.contains(PageFlags::R)
@@ -489,7 +510,10 @@ impl Tenant {
             Policy::Fatal => {
                 let seen = {
                     let guard = disable_preempt();
-                    let mut c = self.space.cursor(&guard, &(addr..addr + PAGE_SIZE)).unwrap();
+                    let mut c = self
+                        .space
+                        .cursor(&guard, &(addr..addr + PAGE_SIZE))
+                        .unwrap();
                     match c.query().unwrap().1 {
                         Some(VmQueriedItem::MappedRam { frame, prop }) => {
                             alloc::format!("mapped to {:#x} {:?}", frame.paddr(), prop.flags)
@@ -511,10 +535,13 @@ impl Tenant {
     fn results(&self, n: usize) -> Vec<u64> {
         let mut bytes = vec![0u8; n * 8];
         let mut r = self.space.reader(RESULTS, n * 8).unwrap();
-        r.read_fallible(&mut VmWriter::from(&mut bytes[..])).unwrap();
+        r.read_fallible(&mut VmWriter::from(&mut bytes[..]))
+            .unwrap();
         bytes
-            .chunks_exact(8)
-            .map(|c| u64::from_le_bytes(c.try_into().unwrap()))
+            .as_chunks::<8>()
+            .0
+            .iter()
+            .map(|c| u64::from_le_bytes(*c))
             .collect()
     }
 }
@@ -571,10 +598,19 @@ pub fn main() {
         stats().frames_in_use
     );
     match mode {
-        "func" => spawn(0, || finish(func_main())),
+        "func" => spawn(0, || {
+            func_main();
+            finish();
+        }),
         "r2" => spawn(0, r2_main),
-        "perf" => spawn(0, || finish(perf_main())),
-        "pressure" => spawn(0, || finish(pressure_main())),
+        "perf" => spawn(0, || {
+            perf_main();
+            finish();
+        }),
+        "pressure" => spawn(0, || {
+            pressure_main();
+            finish();
+        }),
         "conc" => conc_spawn(),
         "kill" => {
             spawn(1, kill_victim);
@@ -601,14 +637,18 @@ fn ap_main() {
 /// Set once the application processor, vCPU 1, has started.
 static AP_UP: AtomicBool = AtomicBool::new(false);
 
-fn finish(_: ()) {
+fn finish() {
     let failed = FAILED.load(Ordering::Relaxed);
     println!(
         "MEM-DONE {} frames_in_use={}",
         if failed { "FAIL" } else { "ok" },
         stats().frames_in_use
     );
-    poweroff(if failed { ExitCode::Failure } else { ExitCode::Success });
+    poweroff(if failed {
+        ExitCode::Failure
+    } else {
+        ExitCode::Success
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -626,8 +666,11 @@ fn func_main() {
     t.run(CMD_TOUCH_READ, REGION_A, 512, 0, 0);
     let d = stats().since(&s0);
     println!("MEM-RESULT e2-eager pages=512 faults={}", faults(&d));
-    expect("E2 eager: zero Linux faults after the maps", faults(&d) == 0,
-           format_args!("({} faults for 512 pages)", faults(&d)));
+    expect(
+        "E2 eager: zero Linux faults after the maps",
+        faults(&d) == 0,
+        format_args!("({} faults for 512 pages)", faults(&d)),
+    );
     unmap_pages(&t.space, REGION_A, 512);
     drop(frames);
 
@@ -639,10 +682,19 @@ fn func_main() {
     let d = stats().since(&s0);
     println!(
         "MEM-RESULT e2-faultaround pages=16 faults={} kernel_handled={} maps={}",
-        faults(&d), t.handled - h0, d.maps
+        faults(&d),
+        t.handled - h0,
+        d.maps
     );
-    expect("E2 fault-around: one Linux fault for sixteen pages", faults(&d) == 1,
-           format_args!("({} faults, {} handled by the kernel proper)", faults(&d), t.handled - h0));
+    expect(
+        "E2 fault-around: one Linux fault for sixteen pages",
+        faults(&d) == 1,
+        format_args!(
+            "({} faults, {} handled by the kernel proper)",
+            faults(&d),
+            t.handled - h0
+        ),
+    );
     t.policy = Policy::Fatal;
     unmap_pages(&t.space, REGION_F, 16);
 
@@ -654,9 +706,16 @@ fn func_main() {
     let s0 = stats();
     t.run(CMD_TOUCH_READ, REGION_P, 64, 0, 0);
     let d = stats().since(&s0);
-    println!("MEM-RESULT e3-reads protected={} pages=64 faults={}", pr, faults(&d));
-    expect("E3: zero faults on the reads after protect", faults(&d) == 0,
-           format_args!("({} faults)", faults(&d)));
+    println!(
+        "MEM-RESULT e3-reads protected={} pages=64 faults={}",
+        pr,
+        faults(&d)
+    );
+    expect(
+        "E3: zero faults on the reads after protect",
+        faults(&d) == 0,
+        format_args!("({} faults)", faults(&d)),
+    );
     t.policy = Policy::MakeWritable;
     let h0 = t.handled;
     let s0 = stats();
@@ -664,11 +723,19 @@ fn func_main() {
     let d = stats().since(&s0);
     println!(
         "MEM-RESULT e3-write mkwrites={} faults={} reported={} kernel_handled={}",
-        d.mkwrites, d.faults, d.reported, t.handled - h0
+        d.mkwrites,
+        d.faults,
+        d.reported,
+        t.handled - h0
     );
-    expect("E3: exactly one pfn_mkwrite report on the write",
-           d.mkwrites == 1 && d.faults == 0 && d.reported == 1 && t.handled - h0 == 1,
-           format_args!("(mkwrites {}, faults {}, reported {})", d.mkwrites, d.faults, d.reported));
+    expect(
+        "E3: exactly one pfn_mkwrite report on the write",
+        d.mkwrites == 1 && d.faults == 0 && d.reported == 1 && t.handled - h0 == 1,
+        format_args!(
+            "(mkwrites {}, faults {}, reported {})",
+            d.mkwrites, d.faults, d.reported
+        ),
+    );
     t.policy = Policy::Fatal;
     unmap_pages(&t.space, REGION_P, 64);
     drop(frames);
@@ -695,11 +762,21 @@ fn func_main() {
     let bad = t.run(CMD_CHECK, REGION_Q, 1, 0x4040, 0);
     println!(
         "MEM-RESULT e4 maps={} lifted={} switches_in_section={} mismatches={}",
-        d.maps, d.lifted, sw_in - sw0, bad
+        d.maps,
+        d.lifted,
+        sw_in - sw0,
+        bad
     );
-    expect("E4: map under a preempt guard, mirror lifted, mapping correct, no kernelet switch",
-           d.maps == 1 && d.lifted == 1 && sw_in == sw0 && bad == 0,
-           format_args!("(lifted {}, switches {}, mismatches {})", d.lifted, sw_in - sw0, bad));
+    expect(
+        "E4: map under a preempt guard, mirror lifted, mapping correct, no kernelet switch",
+        d.maps == 1 && d.lifted == 1 && sw_in == sw0 && bad == 0,
+        format_args!(
+            "(lifted {}, switches {}, mismatches {})",
+            d.lifted,
+            sw_in - sw0,
+            bad
+        ),
+    );
     unmap_pages(&t.space, REGION_Q, 1);
     drop(f);
 
@@ -796,7 +873,11 @@ fn perf_main() {
         unmap_pages(&t.space, REGION_A, 512);
     }
     report("first_touch", &mut touch);
-    println!("MEM-RESULT e6-first-touch faults={} pages={}", touch_faults, rounds * 512);
+    println!(
+        "MEM-RESULT e6-first-touch faults={} pages={}",
+        touch_faults,
+        rounds * 512
+    );
 
     // E6b: map per page.
     let mut single = Vec::new();
@@ -839,7 +920,11 @@ fn perf_main() {
     }
     report("protect_2m", &mut prot);
     report("read_after_protect", &mut reads);
-    println!("MEM-RESULT e6-protect faults_on_reads={} pages={}", read_faults, rounds * 512);
+    println!(
+        "MEM-RESULT e6-protect faults_on_reads={} pages={}",
+        read_faults,
+        rounds * 512
+    );
 
     // E6d: a copy through the walk.
     map_frames(&t.space, REGION_A, &pool[..1], rw());
@@ -850,7 +935,8 @@ fn perf_main() {
     for _ in 0..(rounds * 1000) {
         let a = read_tsc();
         let mut r = t.space.reader(REGION_A + 64, 64).unwrap();
-        r.read_fallible(&mut VmWriter::from(&mut buf[..64])).unwrap();
+        r.read_fallible(&mut VmWriter::from(&mut buf[..64]))
+            .unwrap();
         c64.push(read_tsc() - a);
         let a = read_tsc();
         let mut r = t.space.reader(REGION_A, PAGE_SIZE).unwrap();
@@ -934,7 +1020,8 @@ fn e9(t: &mut Tenant, pool: &[UFrame], rounds: usize) {
         RESULTS..RESULTS + RESULT_PAGES * PAGE_SIZE,
         big.clone(),
     ];
-    let (mut f_t, mut fr_t, mut cr_t, mut pr_t, mut un_t) = (vec![], vec![], vec![], vec![], vec![]);
+    let (mut f_t, mut fr_t, mut cr_t, mut pr_t, mut un_t) =
+        (vec![], vec![], vec![], vec![], vec![]);
     for _ in 0..rounds {
         // The parent: 64 MiB over the pool, every page touched before the
         // fork begins.
@@ -973,11 +1060,19 @@ fn e9(t: &mut Tenant, pool: &[UFrame], rounds: usize) {
         println!(
             "MEM-RESULT e9 copied={} fork_maps={} fork_protects={} fork_flush_alls={} \
              child_read_faults={} parent_reread_faults={} munmapped={}",
-            copied, d_fork.maps, d_fork.protects, d_fork.flush_alls,
-            faults(&d_child), faults(&d_parent), n
+            copied,
+            d_fork.maps,
+            d_fork.protects,
+            d_fork.flush_alls,
+            faults(&d_child),
+            faults(&d_parent),
+            n
         );
-        expect("E9: one for_all flush in the fork", d_fork.flush_alls == 1,
-               format_args!("({} flush-alls)", d_fork.flush_alls));
+        expect(
+            "E9: one for_all flush in the fork",
+            d_fork.flush_alls == 1,
+            format_args!("({} flush-alls)", d_fork.flush_alls),
+        );
         f_t.push(t1 - t0);
         fr_t.push(t1 - t0 + t3 - t2);
         cr_t.push(t3 - t2);
@@ -1012,7 +1107,10 @@ fn pressure_main() {
     t.run(CMD_TOUCH_WRITE, REGION_A, n, 0x7070, 0);
     let bad0 = t.run(CMD_CHECK, REGION_A, n, 0x7070, 0);
     let wait_ms = arg_u64("wait_ms", 30000);
-    println!("E7-MAPPED pages={} mismatches={} waiting {} ms in user mode", n, bad0, wait_ms);
+    println!(
+        "E7-MAPPED pages={} mismatches={} waiting {} ms in user mode",
+        n, bad0, wait_ms
+    );
     let s0 = stats();
     t.run(CMD_SPIN, 0, 0, wait_ms * ostd::time::tsc_khz(), 0);
     let d_wait = stats().since(&s0);
@@ -1042,12 +1140,21 @@ fn pressure_main() {
     let d_read = stats().since(&s1);
     println!(
         "MEM-RESULT e7 pages={} present={} same_frame={} read_faults={} mismatches={}",
-        n, present, same, faults(&d_read), bad1
+        n,
+        present,
+        same,
+        faults(&d_read),
+        bad1
     );
     expect(
         "E7: every entry still present after reclaim, contents intact, no fault on the reads",
         present == n && same == n && faults(&d_read) == 0 && bad1 == 0 && bad0 == 0,
-        format_args!("(present {}, read faults {}, mismatches {})", present, faults(&d_read), bad1),
+        format_args!(
+            "(present {}, read faults {}, mismatches {})",
+            present,
+            faults(&d_read),
+            bad1
+        ),
     );
     unmap_pages(&t.space, REGION_A, n);
 }
@@ -1074,9 +1181,7 @@ fn sig(paddr: usize, gen: u64) -> u64 {
 fn fill_sig(f: &UFrame, gen: u64) {
     let v = sig(f.paddr(), gen).to_le_bytes();
     let mut page = [0u8; PAGE_SIZE];
-    for w in page.chunks_exact_mut(8) {
-        w.copy_from_slice(&v);
-    }
+    page.as_chunks_mut::<8>().0.fill(v);
     f.write_bytes(0, &page).unwrap();
 }
 
@@ -1184,9 +1289,12 @@ fn conc_a() {
     spin_ms(20);
     let s0 = stats();
     let n = unmap_pages(&x, REGION_A, E8_PAGES); // the exit's unmap
-    // Reallocate at once: freed frames come straight back.
+                                                 // Reallocate at once: freed frames come straight back.
     let fresh = new_frames(E8_PAGES);
-    let reused = fresh.iter().filter(|f| victim_paddrs.contains(&f.paddr())).count();
+    let reused = fresh
+        .iter()
+        .filter(|f| victim_paddrs.contains(&f.paddr()))
+        .count();
     for f in &fresh {
         fill_sig(f, 0xa11ce);
     }
@@ -1201,8 +1309,10 @@ fn conc_a() {
     for f in &fresh {
         f.read_bytes(0, &mut page).unwrap();
         if page
-            .chunks_exact(8)
-            .any(|w| u64::from_le_bytes(w.try_into().unwrap()) != want(f.paddr()))
+            .as_chunks::<8>()
+            .0
+            .iter()
+            .any(|w| u64::from_le_bytes(*w) != want(f.paddr()))
         {
             corrupted += 1;
         }
@@ -1232,7 +1342,7 @@ fn conc_a() {
     drop(fresh);
 
     // Verdicts, all on vCPU 0.
-    let r = E8_RESULT.lock().clone();
+    let r = *E8_RESULT.lock();
     let (ok, torn, absent, bad_frame, copies) = (r[0], r[1], r[2], r[3], r[4]);
     println!(
         "MEM-RESULT e8-reads copies={} whole={} torn={} absent_or_partial={} unknown_frame={}",
@@ -1243,17 +1353,24 @@ fn conc_a() {
         "MEM-RESULT e8-contended waited_us={} wait_sleeps={} cas_retries={} switches_v0={} switches_v1={} acquired_after_release={}",
         waited, sleeps, cas, sw0, sw1, after_release
     );
-    expect("E8: no torn read, no unknown frame, copies of both kinds happened",
-           torn == 0 && bad_frame == 0 && ok > 0 && absent > 0,
-           format_args!("(whole {}, torn {}, absent {})", ok, torn, absent));
-    expect("E8: the second cursor slept in vm_wait and got the lock after the release, \
+    expect(
+        "E8: no torn read, no unknown frame, copies of both kinds happened",
+        torn == 0 && bad_frame == 0 && ok > 0 && absent > 0,
+        format_args!("(whole {}, torn {}, absent {})", ok, torn, absent),
+    );
+    expect(
+        "E8: the second cursor slept in vm_wait and got the lock after the release, \
             no spinning, no kernelet task switch",
-           sleeps >= 1 && after_release == 1 && cas <= 4 && sw0 == 0 && sw1 == 0,
-           format_args!("(slept {} time(s), waited {} us, {} CAS retries)", sleeps, waited, cas));
+        sleeps >= 1 && after_release == 1 && cas <= 4 && sw0 == 0 && sw1 == 0,
+        format_args!(
+            "(slept {} time(s), waited {} us, {} CAS retries)",
+            sleeps, waited, cas
+        ),
+    );
     expect("E11: no frame released before the grace period; the space retired with interrupts off and drained later",
            corrupted == 0 && n == E8_PAGES && deferred == 1 && reaped >= 1,
            format_args!("(corrupted {}, deferred {}, reaped {})", corrupted, deferred, reaped));
-    finish(());
+    finish();
 }
 
 static E8_RESULT: SpinLock<[u64; 11]> = SpinLock::new([0; 11]);
@@ -1277,7 +1394,13 @@ fn kill_victim() {
     *X_SPACE.lock() = Some(t.space.clone());
     PHASE.store(1, Ordering::Release);
     println!("MEM-KILL-ME vcpu=1");
-    t.run(CMD_COUNT, RESULTS, 200_000, 60_000 * ostd::time::tsc_khz(), 0);
+    t.run(
+        CMD_COUNT,
+        RESULTS,
+        200_000,
+        60_000 * ostd::time::tsc_khz(),
+        0,
+    );
     println!("MEM-KILL vcpu 1 was not killed");
     FAILED.store(true, Ordering::Relaxed);
 }
@@ -1302,15 +1425,21 @@ fn kill_survivor() {
         rounds += 1;
         if read_tsc() >= next_report {
             next_report = read_tsc() + 500 * ostd::time::tsc_khz();
-            println!("MEM-KILL survivor rounds={} faults={}", rounds, faults(&stats().since(&s0)));
+            println!(
+                "MEM-KILL survivor rounds={} faults={}",
+                rounds,
+                faults(&stats().since(&s0))
+            );
         }
     }
     // Reached only if the kill never came, or did not end the sandbox.
     let d = stats().since(&s0);
-    expect("E11 kill: the kill of vCPU 1's carrier ended the sandbox before this thread finished",
-           false,
-           format_args!("({} rounds, {} faults)", rounds, faults(&d)));
-    finish(());
+    expect(
+        "E11 kill: the kill of vCPU 1's carrier ended the sandbox before this thread finished",
+        false,
+        format_args!("({} rounds, {} faults)", rounds, faults(&d)),
+    );
+    finish();
 }
 
 // ---------------------------------------------------------------------------
@@ -1343,14 +1472,23 @@ fn kill_outlive(what: &str) {
     let mut t = new_tenant();
     let dur = arg_u64("dur", 10_000);
     let end = read_tsc() + dur * ostd::time::tsc_khz();
-    println!("MEM-KILL-READY vcpu 1 is {}", if what == "spin" { "spinning in a kernel task" } else { "idle" });
+    println!(
+        "MEM-KILL-READY vcpu 1 is {}",
+        if what == "spin" {
+            "spinning in a kernel task"
+        } else {
+            "idle"
+        }
+    );
     while read_tsc() < end {
         t.run(CMD_SPIN, 0, 0, 50 * ostd::time::tsc_khz(), 0);
     }
-    expect("kill: the kill of vCPU 1's carrier ended the sandbox before vCPU 0's tenant finished",
-           false,
-           format_args!("(vCPU 1 {})", what));
-    finish(());
+    expect(
+        "kill: the kill of vCPU 1's carrier ended the sandbox before vCPU 0's tenant finished",
+        false,
+        format_args!("(vCPU 1 {})", what),
+    );
+    finish();
 }
 
 /// Virtual CPU 1: copies out of the space while vCPU 0 maps and unmaps it
@@ -1372,8 +1510,10 @@ fn conc_b() {
                 Ok(_) => {
                     let first = u64::from_le_bytes(buf[..8].try_into().unwrap());
                     let bad_at = buf
-                        .chunks_exact(8)
-                        .position(|w| u64::from_le_bytes(w.try_into().unwrap()) != first);
+                        .as_chunks::<8>()
+                        .0
+                        .iter()
+                        .position(|w| u64::from_le_bytes(*w) != first);
                     if let Some(at) = bad_at {
                         torn += 1;
                         if torn <= 4 {
@@ -1385,10 +1525,18 @@ fn conc_b() {
                             };
                             println!(
                                 "MEM-TORN va={:#x} first={:#x} {:?} word {} = {:#x} {:?}",
-                                va, first, dec(first), at, other, dec(other)
+                                va,
+                                first,
+                                dec(first),
+                                at,
+                                other,
+                                dec(other)
                             );
                         }
-                    } else if !pool.iter().any(|&p| (first ^ 0x5a5a_0000_0000_0000) >> 20 == p as u64) {
+                    } else if !pool
+                        .iter()
+                        .any(|&p| (first ^ 0x5a5a_0000_0000_0000) >> 20 == p as u64)
+                    {
                         bad_frame += 1;
                     } else {
                         ok += 1;
@@ -1423,7 +1571,10 @@ fn conc_b() {
     {
         let guard = disable_preempt();
         let mut c = space
-            .cursor_mut(&guard, &(REGION_Q + 8 * PAGE_SIZE..REGION_Q + 9 * PAGE_SIZE))
+            .cursor_mut(
+                &guard,
+                &(REGION_Q + 8 * PAGE_SIZE..REGION_Q + 9 * PAGE_SIZE),
+            )
             .unwrap();
         let t1 = read_tsc();
         let after = (t1 >= RELEASE_T.load(Ordering::Acquire)

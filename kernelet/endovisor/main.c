@@ -75,8 +75,9 @@ static struct linux_binfmt klet_format;
  */
 bool klet_mirror = true;
 module_param(klet_mirror, bool, 0444);
-MODULE_PARM_DESC(klet_mirror,
-		 "mirror the kernelet's guard depth into Linux's preemption count (default on)");
+MODULE_PARM_DESC(
+	klet_mirror,
+	"mirror the kernelet's guard depth into Linux's preemption count (default on)");
 
 /*
  * The test hook, off by default and no part of the design. With
@@ -88,10 +89,13 @@ MODULE_PARM_DESC(klet_mirror,
  */
 bool klet_test_hooks;
 module_param(klet_test_hooks, bool, 0444);
-MODULE_PARM_DESC(klet_test_hooks, "enable the test hook: test-flagged vm_map calls sleep (default off)");
+MODULE_PARM_DESC(
+	klet_test_hooks,
+	"enable the test hook: test-flagged vm_map calls sleep (default off)");
 unsigned int klet_test_sleep_ms = 20;
 module_param(klet_test_sleep_ms, uint, 0444);
-MODULE_PARM_DESC(klet_test_sleep_ms, "how long a test-flagged vm_map sleeps (default 20 ms)");
+MODULE_PARM_DESC(klet_test_sleep_ms,
+		 "how long a test-flagged vm_map sleeps (default 20 ms)");
 
 /* ------------------------------------------------------------------ */
 /* The carrier lifeline                                               */
@@ -169,11 +173,12 @@ int klet_publish_host_offsets(struct klet_inst *inst)
 	inst->boot.gs_preempt_count = off_pc;
 	inst->boot.task_hooks_off = offsetof(struct task_struct, carrier_hooks);
 	inst->boot.hooks_vrec_off = offsetof(struct klet_carrier, vrec) -
-				   offsetof(struct klet_carrier, hooks);
+				    offsetof(struct klet_carrier, hooks);
 
 	pr_info("kernelet: sandbox %d: host offsets: gs:current %#llx, gs:preempt_count %#llx, task->carrier_hooks +%llu, hooks->vrec +%llu\n",
-		inst->slot, inst->boot.gs_current_task, inst->boot.gs_preempt_count,
-		inst->boot.task_hooks_off, inst->boot.hooks_vrec_off);
+		inst->slot, inst->boot.gs_current_task,
+		inst->boot.gs_preempt_count, inst->boot.task_hooks_off,
+		inst->boot.hooks_vrec_off);
 	return 0;
 }
 
@@ -211,7 +216,8 @@ static void klet_empty_mm(void)
 	VMA_ITERATOR(vmi, mm, 0);
 
 	mmap_read_lock(mm);
-	for_each_vma(vmi, vma) {
+	for_each_vma(vmi, vma)
+	{
 		if (n == ARRAY_SIZE(start))
 			break;
 		start[n] = vma->vm_start;
@@ -312,7 +318,7 @@ static int klet_load_binary(struct linux_binprm *bprm)
 		return -ENOEXEC;
 	inst = klet_exec_lookup(bprm, &vcpu);
 	if (!inst)
-		return -ENOEXEC;	/* the bytes, but not one of our files */
+		return -ENOEXEC; /* the bytes, but not one of our files */
 	err = klet_exec_claim(inst, vcpu);
 	if (err)
 		goto out;
@@ -341,7 +347,8 @@ static int klet_load_binary(struct linux_binprm *bprm)
 	 * fs.suid_dumpable. set_dumpable() is not exported: its one line here.
 	 */
 	dumpable = get_dumpable(current->mm);
-	set_mask_bits(&current->mm->flags, MMF_DUMPABLE_MASK, SUID_DUMP_DISABLE);
+	set_mask_bits(&current->mm->flags, MMF_DUMPABLE_MASK,
+		      SUID_DUMP_DISABLE);
 
 	/* __set_task_comm() is not exported (and so no perf comm event is sent). */
 	snprintf(comm, sizeof(comm), "kernelet/%d/%u", inst->slot, vcpu);
@@ -379,8 +386,9 @@ static int klet_load_binary(struct linux_binprm *bprm)
 	if (first) {
 		err = klet_sandbox_start(inst);
 		if (err) {
-			pr_err("kernelet: sandbox %d cannot start: %d\n", inst->slot, err);
-			goto kill;	/* its death ends the sandbox */
+			pr_err("kernelet: sandbox %d cannot start: %d\n",
+			       inst->slot, err);
+			goto kill; /* its death ends the sandbox */
 		}
 	}
 	spin_lock(&inst->lock);
@@ -441,21 +449,23 @@ static long klet_kind_register(struct klet_kind_register __user *uarg)
 
 	if (copy_from_user(&reg, uarg, sizeof(reg)))
 		return -EFAULT;
-	if (reg.flags || !reg.name[0] || strnlen(reg.name, KLET_NAME_LEN) == KLET_NAME_LEN)
+	if (reg.flags || !reg.name[0] ||
+	    strnlen(reg.name, KLET_NAME_LEN) == KLET_NAME_LEN)
 		return -EINVAL;
 	err = klet_may_load_code();
 	if (err)
 		return err;
 	/* Read as a module file is read, so that the host's security modules see it. */
-	len = kernel_read_file_from_fd(reg.image_fd, 0, &buf, KLET_IMAGE_MAX, NULL,
-				       READING_MODULE);
+	len = kernel_read_file_from_fd(reg.image_fd, 0, &buf, KLET_IMAGE_MAX,
+				       NULL, READING_MODULE);
 	if (len < 0)
 		return len;
 
 	mutex_lock(&klet_table_lock);
 	err = 0;
 	for (i = 0; i < KLET_MAX_KINDS; i++) {
-		if (klet_kinds[i].used && strcmp(klet_kinds[i].name, reg.name) == 0)
+		if (klet_kinds[i].used &&
+		    strcmp(klet_kinds[i].name, reg.name) == 0)
 			err = -EEXIST;
 		else if (!klet_kinds[i].used && !kind) {
 			kind = &klet_kinds[i];
@@ -471,7 +481,8 @@ static long klet_kind_register(struct klet_kind_register __user *uarg)
 		kind->nr_sandboxes = 0;
 		kind->used = true;
 		pr_info("kernelet: kind %d \"%s\" registered: an image of %zd bytes, PIE text offsets [%#lx, %#lx), %zu bytes shared\n",
-			id, kind->name, len, kind->text_lo, kind->text_hi, kind->text_size);
+			id, kind->name, len, kind->text_lo, kind->text_hi,
+			kind->text_size);
 	}
 	mutex_unlock(&klet_table_lock);
 	vfree(buf);
@@ -533,7 +544,8 @@ static long klet_kind_unregister(u32 __user *uarg)
 	else if (kind->nr_sandboxes)
 		err = -EBUSY;
 	else {
-		pr_info("kernelet: kind %u \"%s\" unregistered\n", id, kind->name);
+		pr_info("kernelet: kind %u \"%s\" unregistered\n", id,
+			kind->name);
 		klet_image_free(kind);
 		kind->used = false;
 	}
@@ -541,7 +553,8 @@ static long klet_kind_unregister(u32 __user *uarg)
 	return err;
 }
 
-static long klet_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+static long klet_dev_ioctl(struct file *file, unsigned int cmd,
+			   unsigned long arg)
 {
 	void __user *uarg = (void __user *)arg;
 
@@ -637,7 +650,8 @@ static void __exit klet_exit(void)
 
 	for (i = 0; i < KLET_MAX_SANDBOXES; i++)
 		if (klet_sandboxes[i])
-			pr_warn("kernelet: at unload: sandbox %d was never destroyed\n", i);
+			pr_warn("kernelet: at unload: sandbox %d was never destroyed\n",
+				i);
 	for (i = 0; i < KLET_MAX_KINDS; i++)
 		if (klet_kinds[i].used) {
 			klet_image_free(&klet_kinds[i]);
@@ -648,13 +662,15 @@ static void __exit klet_exit(void)
 		pr_info("kernelet: eviction: %d sweep(s), %d eviction(s)\n",
 			atomic_read(&t->sweeps), atomic_read(&t->n.evictions));
 	{
-		int n = min(atomic_read(&t->forced_recorded), KLET_FORCED_RECORDS);
+		int n = min(atomic_read(&t->forced_recorded),
+			    KLET_FORCED_RECORDS);
 
 		for (i = 0; i < n; i++) {
 			struct klet_forced_rec *r = &t->forced_rec[i];
 
 			pr_info("kernelet: forced yield of vcpu %d (pid %d) on cpu %d at ip %#lx, guards %u, irq_off %u\n",
-				r->vcpu, r->pid, r->cpu, r->ip, r->guards, r->irq_off);
+				r->vcpu, r->pid, r->cpu, r->ip, r->guards,
+				r->irq_off);
 		}
 	}
 	pr_info("kernelet: watch timer: %d tick(s), %d upcall(s), %d voluntary yield(s)\n",
@@ -666,31 +682,29 @@ static void __exit klet_exit(void)
 		atomic_read(&t->n.fires_elsewhere),
 		atomic_read(&t->n.fires_masked));
 	pr_info("kernelet: STATS sandboxes=%d deferrals=%d longest_defer_us=%d longest_tick_gap_us=%d forced_yields=%d bad_preempt=%d on_spin=%d yield_to=%d mm_switch=%d fpu_swap=%d fpu_reject=%d mirror_fault=%d stolen_ms=%d kstacks=%d\n",
-		atomic_read(&t->sandboxes),
-		atomic_read(&t->n.deferrals),
+		atomic_read(&t->sandboxes), atomic_read(&t->n.deferrals),
 		atomic_read(&t->longest_defer_us),
 		atomic_read(&t->longest_tick_gap_us),
 		atomic_read(&t->n.forced_yields),
-		atomic_read(&t->n.bad_preempt),
-		atomic_read(&t->n.on_spins),
-		atomic_read(&t->n.yield_tos),
-		atomic_read(&t->n.mm_switches),
-		atomic_read(&t->n.fpu_swaps),
-		atomic_read(&t->n.fpu_rejects),
-		atomic_read(&t->n.mirror_faults),
-		atomic_read(&t->n.stolen_ms),
+		atomic_read(&t->n.bad_preempt), atomic_read(&t->n.on_spins),
+		atomic_read(&t->n.yield_tos), atomic_read(&t->n.mm_switches),
+		atomic_read(&t->n.fpu_swaps), atomic_read(&t->n.fpu_rejects),
+		atomic_read(&t->n.mirror_faults), atomic_read(&t->n.stolen_ms),
 		atomic_read(&t->kstack_total));
 	{
 		struct klet_mem_stats *m = &t->mem;
 
 		pr_info("kernelet: MEMSTATS faults=%lld mkwrites=%lld reported=%lld kernel_faults=%lld maps=%lld unmaps=%lld unmapped=%lld protects=%lld protected=%lld flushes=%lld flush_alls=%lld waits=%lld wait_sleeps=%lld wakes=%lld spaces=%lld\n",
 			atomic64_read(&m->faults), atomic64_read(&m->mkwrites),
-			atomic64_read(&m->reported), atomic64_read(&m->kernel_faults),
-			atomic64_read(&m->maps),
-			atomic64_read(&m->unmaps), atomic64_read(&m->unmapped),
-			atomic64_read(&m->protects), atomic64_read(&m->protected_),
-			atomic64_read(&m->flushes), atomic64_read(&m->flush_alls),
-			atomic64_read(&m->waits), atomic64_read(&m->wait_sleeps),
+			atomic64_read(&m->reported),
+			atomic64_read(&m->kernel_faults),
+			atomic64_read(&m->maps), atomic64_read(&m->unmaps),
+			atomic64_read(&m->unmapped),
+			atomic64_read(&m->protects),
+			atomic64_read(&m->protected_),
+			atomic64_read(&m->flushes),
+			atomic64_read(&m->flush_alls), atomic64_read(&m->waits),
+			atomic64_read(&m->wait_sleeps),
 			atomic64_read(&m->wakes), atomic64_read(&m->spaces));
 	}
 	pr_info("kernelet: kills: %d found in a service, %d in kernelet code by the watch timer\n",
@@ -708,12 +722,15 @@ static void __exit klet_exit(void)
 			pr_warn("kernelet: heap: %lld mem_free call(s) refused: not a block mem_alloc handed out\n",
 				bad);
 		pr_info("kernelet: kernelet stacks: %d made, %d returned, %d live\n",
-			atomic_read(&t->kstack_total), atomic_read(&t->kstack_returned),
-			atomic_read(&t->kstack_total) - atomic_read(&t->kstack_returned));
+			atomic_read(&t->kstack_total),
+			atomic_read(&t->kstack_returned),
+			atomic_read(&t->kstack_total) -
+				atomic_read(&t->kstack_returned));
 	}
 	pr_info("kernelet: carrier records: %d made, %d freed, %d live\n",
 		atomic_read(&t->carriers_made), atomic_read(&t->carriers_freed),
-		atomic_read(&t->carriers_made) - atomic_read(&t->carriers_freed));
+		atomic_read(&t->carriers_made) -
+			atomic_read(&t->carriers_freed));
 	pr_info("kernelet: endovisor unloaded\n");
 }
 

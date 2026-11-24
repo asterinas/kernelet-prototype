@@ -28,16 +28,18 @@
 
 extern crate alloc;
 
-use align_ext::AlignExt;
-
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use core::{
     sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering},
     time::Duration,
 };
 
+use align_ext::AlignExt;
 use ostd::{
-    arch::{cpu::context::{FpuContext, UserContext}, read_tsc},
+    arch::{
+        cpu::context::{FpuContext, UserContext},
+        read_tsc,
+    },
     boot::{boot_info, smp::register_ap_entry},
     cpu::{num_cpus, CpuId, PinCurrentCpu},
     irq::DisabledLocalIrqGuard,
@@ -56,7 +58,7 @@ use ostd::{
         Task, TaskOptions,
     },
     timer::{Jiffies, TIMER_FREQ},
-    user::{DummyUserHooks, ReturnReason, UserMode, UserContextApi},
+    user::{DummyUserHooks, ReturnReason, UserContextApi, UserMode},
 };
 
 // ---------------------------------------------------------------------------
@@ -109,7 +111,9 @@ fn info_of(task: &Task) -> Option<&TaskInfo> {
 }
 
 fn prio_of(task: &Task) -> u8 {
-    info_of(task).map(|i| i.prio).unwrap_or((NR_LEVELS - 1) as u8)
+    info_of(task)
+        .map(|i| i.prio)
+        .unwrap_or((NR_LEVELS - 1) as u8)
 }
 
 fn id_of(task: &Task) -> u32 {
@@ -166,13 +170,23 @@ fn trace_push(s: Switch) {
 
 fn trace_dump() {
     let t = TRACE.disable_irq().lock();
-    println!("SCHED-TRACE begin {} switch(es), {} lost", t.len(),
-             TRACE_LOST.load(Ordering::Relaxed));
+    println!(
+        "SCHED-TRACE begin {} switch(es), {} lost",
+        t.len(),
+        TRACE_LOST.load(Ordering::Relaxed)
+    );
     for s in t.iter() {
         println!(
             "SCHED: sw {} v{} {}->{} p{} r{} @{} c{} k{}",
-            s.seq, s.vcpu, s.prev, s.next, s.prio, reason_name(s.reason), s.ms,
-            s.tsc, s.ticks
+            s.seq,
+            s.vcpu,
+            s.prev,
+            s.next,
+            s.prio,
+            reason_name(s.reason),
+            s.ms,
+            s.tsc,
+            s.ticks
         );
     }
     println!("SCHED-TRACE end");
@@ -439,7 +453,9 @@ fn arg(key: &str) -> Option<&'static str> {
 }
 
 fn arg_u64(key: &str, default: u64) -> u64 {
-    arg(key).and_then(|v| v.parse::<u64>().ok()).unwrap_or(default)
+    arg(key)
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(default)
 }
 
 fn mode() -> &'static str {
@@ -494,7 +510,11 @@ pub fn main() {
     DEADLINE_MS.store(now_ms() + dur, Ordering::Relaxed);
     println!(
         "SCHED-CONF mode={} dur={} vcpus={} levels={} slice_ticks={}",
-        m, dur, num_cpus(), NR_LEVELS, SLICE_TICKS
+        m,
+        dur,
+        num_cpus(),
+        NR_LEVELS,
+        SLICE_TICKS
     );
 
     // The other virtual CPUs. Registering the entry point is what starts them,
@@ -743,31 +763,33 @@ fn scenario_policy() {
     let dur = arg_u64("dur", 3000);
     let half = now_ms() + dur / 2;
 
-    println!("SCHED-PHASE half={} end={}", half, DEADLINE_MS.load(Ordering::Relaxed));
+    println!(
+        "SCHED-PHASE half={} end={}",
+        half,
+        DEADLINE_MS.load(Ordering::Relaxed)
+    );
 
     // Level 0 on vCPU 0: asleep, and urgent the moment it is woken.
-    kernel_task(1, 0, Some(0), || {
-        loop {
-            let woken = SLEEPER.wait_until(|| {
-                if SLEEPER_READY.swap(false, Ordering::Acquire) {
-                    Some(true)
-                } else if SLEEPER_STOP.load(Ordering::Acquire) || past_deadline() {
-                    Some(false)
-                } else {
-                    None
-                }
-            });
-            if !woken {
-                break;
+    kernel_task(1, 0, Some(0), || loop {
+        let woken = SLEEPER.wait_until(|| {
+            if SLEEPER_READY.swap(false, Ordering::Acquire) {
+                Some(true)
+            } else if SLEEPER_STOP.load(Ordering::Acquire) || past_deadline() {
+                Some(false)
+            } else {
+                None
             }
-            let stamp = WAKE_STAMP_P.load(Ordering::Acquire);
-            if stamp != 0 {
-                let dt = read_tsc().wrapping_sub(stamp);
-                WAKE_LATENCY_MAX.fetch_max(dt, Ordering::Relaxed);
-            }
-            event("run", 1, u32::from(CpuId::current_racy()));
-            burn_us(1000);
+        });
+        if !woken {
+            break;
         }
+        let stamp = WAKE_STAMP_P.load(Ordering::Acquire);
+        if stamp != 0 {
+            let dt = read_tsc().wrapping_sub(stamp);
+            WAKE_LATENCY_MAX.fetch_max(dt, Ordering::Relaxed);
+        }
+        event("run", 1, u32::from(CpuId::current_racy()));
+        burn_us(1000);
     })
     .run();
 
@@ -914,7 +936,10 @@ fn scenario_fair(tasks: usize, overstayer: bool) {
     }
 
     reaper(move || {
-        println!("SCHED-RESULT fair tasks={} overstayer={}", tasks, overstayer);
+        println!(
+            "SCHED-RESULT fair tasks={} overstayer={}",
+            tasks, overstayer
+        );
     });
 }
 
@@ -938,7 +963,7 @@ static PHASE2_Q: WaitQueue = WaitQueue::new();
 
 const PERF_ROUNDS: usize = 1500;
 
-fn percentiles(name: &str, samples: &mut Vec<u64>) {
+fn percentiles(name: &str, samples: &mut [u64]) {
     if samples.is_empty() {
         println!("SCHED-PERF {} n=0", name);
         return;
@@ -987,13 +1012,7 @@ fn scenario_perf() {
         let mut n = 0usize;
         while n < 2 * PERF_ROUNDS && !past_deadline() {
             WAKE_Q.wait_until(|| {
-                if WAKE_READY.swap(false, Ordering::Acquire) {
-                    Some(())
-                } else if past_deadline() {
-                    Some(())
-                } else {
-                    None
-                }
+                (WAKE_READY.swap(false, Ordering::Acquire) || past_deadline()).then_some(())
             });
             let stamp = WAKE_STAMP.load(Ordering::Acquire);
             if stamp != 0 {
@@ -1032,7 +1051,9 @@ fn scenario_perf() {
     // level-1 waker from ever running; so the waker starts (c) when it is done.
     let program_c = program;
     kernel_task(34, 1, Some(1), move || {
-        PHASE2_Q.wait_until(|| (PERF_PHASE.load(Ordering::Acquire) >= 2 || past_deadline()).then_some(()));
+        PHASE2_Q.wait_until(|| {
+            (PERF_PHASE.load(Ordering::Acquire) >= 2 || past_deadline()).then_some(())
+        });
         for _ in 0..PERF_ROUNDS {
             if past_deadline() {
                 break;
@@ -1112,8 +1133,10 @@ where
     kernel_task(999, (NR_LEVELS - 1) as u8, Some(0), move || {
         while LIVE.load(Ordering::Relaxed) > 1 {
             if now_ms() > DEADLINE_MS.load(Ordering::Relaxed) + 4000 {
-                println!("SCHED: the reaper gave up waiting; {} task(s) still live",
-                         LIVE.load(Ordering::Relaxed) - 1);
+                println!(
+                    "SCHED: the reaper gave up waiting; {} task(s) still live",
+                    LIVE.load(Ordering::Relaxed) - 1
+                );
                 break;
             }
             Task::yield_now();

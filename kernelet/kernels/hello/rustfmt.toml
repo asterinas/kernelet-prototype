@@ -1,0 +1,2 @@
+# make kernel-proper-check requires this example to match its Asterinas source.
+disable_all_formatting = true

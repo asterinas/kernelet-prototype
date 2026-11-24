@@ -70,7 +70,7 @@ extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
  * the area. A space's mm from mm_alloc() has no exec stack to leave room for.
  */
 #define KLET_AREA_START KLET_WINDOW_START
-#define KLET_AREA_END	TASK_SIZE_MAX
+#define KLET_AREA_END TASK_SIZE_MAX
 
 #define KSTAT_INC(inst, f) atomic64_inc(&(inst)->mem_stats->f)
 
@@ -119,8 +119,10 @@ static void klet_space_put(struct klet_space *sp)
 static vm_fault_t klet_space_report(struct vm_fault *vmf, bool mkwrite)
 {
 	struct vm_area_struct *vma = vmf->vma;
-	struct klet_space *sp = vma->vm_file ? vma->vm_file->private_data : NULL;
-	struct klet_carrier *c = current->carrier_hooks ? klet_current_carrier() : NULL;
+	struct klet_space *sp = vma->vm_file ? vma->vm_file->private_data :
+					       NULL;
+	struct klet_carrier *c =
+		current->carrier_hooks ? klet_current_carrier() : NULL;
 	bool user = !!(vmf->flags & FAULT_FLAG_USER);
 	bool write = mkwrite || !!(vmf->flags & FAULT_FLAG_WRITE);
 	bool exec = !!(vmf->flags & FAULT_FLAG_INSTRUCTION);
@@ -149,7 +151,8 @@ static vm_fault_t klet_space_report(struct vm_fault *vmf, bool mkwrite)
 
 	c->exc_trap = X86_TRAP_PF;
 	c->exc_addr = vmf->address;
-	c->exc_error = (mkwrite ? 1 : 0) | (write ? 2 : 0) | 4 | (exec ? 16 : 0);
+	c->exc_error = (mkwrite ? 1 : 0) | (write ? 2 : 0) | 4 |
+		       (exec ? 16 : 0);
 	c->exc_pending = true;
 	set_thread_flag(TIF_NOTIFY_RESUME);
 	KSTAT_INC(inst, reported);
@@ -186,12 +189,13 @@ static int klet_space_mmap(struct file *file, struct vm_area_struct *vma)
 	/* The area belongs in its own space's address space and nowhere else. */
 	if (!sp || vma->vm_mm != sp->mm) {
 		pr_err("kernelet: space %u's area would be mapped into mm %p, not its own %p (current->mm %p)\n",
-		       sp ? sp->id : 0, vma->vm_mm, sp ? sp->mm : NULL, current->mm);
+		       sp ? sp->id : 0, vma->vm_mm, sp ? sp->mm : NULL,
+		       current->mm);
 		return -EINVAL;
 	}
 
 	vm_flags_set(vma, VM_PFNMAP | VM_IO | VM_DONTEXPAND | VM_DONTDUMP |
-			  VM_DONTCOPY);
+				  VM_DONTCOPY);
 	vma->vm_ops = &klet_space_vm_ops;
 	return 0;
 }
@@ -217,11 +221,12 @@ static int klet_space_make_area(struct klet_space *sp)
 	bool ok = false;
 
 	mmget(sp->mm);
-	prev = kernelet_switch_mm(sp->mm);	/* we now own prev's reference */
+	prev = kernelet_switch_mm(sp->mm); /* we now own prev's reference */
 
-	ret = vm_mmap(sp->file, KLET_AREA_START, KLET_AREA_END - KLET_AREA_START,
-		      PROT_READ | PROT_WRITE | PROT_EXEC, MAP_SHARED | MAP_FIXED,
-		      KLET_AREA_START);
+	ret = vm_mmap(sp->file, KLET_AREA_START,
+		      KLET_AREA_END - KLET_AREA_START,
+		      PROT_READ | PROT_WRITE | PROT_EXEC,
+		      MAP_SHARED | MAP_FIXED, KLET_AREA_START);
 	if (!IS_ERR_VALUE(ret) && ret == KLET_AREA_START) {
 		mmap_read_lock(sp->mm);
 		vma = vma_lookup(sp->mm, KLET_AREA_START);
@@ -231,7 +236,7 @@ static int klet_space_make_area(struct klet_space *sp)
 		mmap_read_unlock(sp->mm);
 	}
 
-	back = kernelet_switch_mm(prev);	/* consumes prev's, returns ours */
+	back = kernelet_switch_mm(prev); /* consumes prev's, returns ours */
 	if (back)
 		mmput(back);
 
@@ -326,7 +331,6 @@ static int klet_pte_is_pfn(pte_t *pte, unsigned long addr, void *data)
 	return 0;
 }
 
-
 /*
  * Rewrites one present entry's protection in place with one compare-and-swap,
  * so that a lockless reader never sees it absent (Linux's own
@@ -340,10 +344,11 @@ static int klet_pte_protect(pte_t *pte, unsigned long addr, void *data)
 	pte_t old = ptep_get(pte), new;
 
 	if (!pte_present(old))
-		return -EINVAL;	/* create=true calls us for an empty slot too */
+		return -EINVAL; /* create=true calls us for an empty slot too */
 	do {
 		new = pte_modify(old, ctx->prot);
-	} while (!try_cmpxchg64((u64 *)&pte->pte, (u64 *)&old.pte, pte_val(new)));
+	} while (!try_cmpxchg64((u64 *)&pte->pte, (u64 *)&old.pte,
+				pte_val(new)));
 	ctx->done = true;
 	return 0;
 }
@@ -386,8 +391,8 @@ s64 klet_do_vm_create(struct klet_carrier *c)
 	 * shared anonymous inode, and every space's area would then sit in one
 	 * i_mmap tree, which every rmap walk over any of them would traverse.
 	 */
-	file = anon_inode_create_getfile("[kernelet-space]", &klet_space_fops, sp,
-					 O_RDWR, NULL);
+	file = anon_inode_create_getfile("[kernelet-space]", &klet_space_fops,
+					 sp, O_RDWR, NULL);
 	if (IS_ERR(file)) {
 		/* An LSM may refuse it (security_inode_init_security_anon). */
 		pr_err("kernelet: vm_create: anon_inode_create_getfile() refused: %ld\n",
@@ -426,7 +431,7 @@ s64 klet_do_vm_create(struct klet_carrier *c)
 	set_mask_bits(&mm->flags, MMF_DUMPABLE_MASK, SUID_DUMP_DISABLE);
 	WRITE_ONCE(sp->rec->root_paddr, (u64)__pa(mm->pgd));
 	sp->rec->gen++;
-	atomic_set(&sp->users, 1);	/* the space's own reference */
+	atomic_set(&sp->users, 1); /* the space's own reference */
 	smp_store_release(&sp->live, true);
 	KSTAT_INC(inst, spaces);
 	mutex_unlock(&inst->spaces_lock);
@@ -439,7 +444,7 @@ s64 klet_do_vm_create(struct klet_carrier *c)
 #else
 			"n/a"
 #endif
-			);
+		);
 	return sp->id;
 }
 
@@ -587,8 +592,8 @@ void klet_spaces_wake_all(struct klet_inst *inst)
 int klet_spaces_init(struct klet_inst *inst)
 {
 	mutex_init(&inst->spaces_lock);
-	inst->space_recs = kcalloc(KLET_MAX_SPACES, sizeof(*inst->space_recs),
-				   GFP_KERNEL);
+	inst->space_recs =
+		kcalloc(KLET_MAX_SPACES, sizeof(*inst->space_recs), GFP_KERNEL);
 	inst->mem_stats = kzalloc(sizeof(*inst->mem_stats), GFP_KERNEL);
 	if (!inst->space_recs || !inst->mem_stats) {
 		kfree(inst->space_recs);
@@ -618,7 +623,7 @@ int klet_space_adopt(struct klet_carrier *c, u64 id)
 	struct mm_struct *old;
 
 	if (id == 0)
-		return 0;	/* no space activated: nothing to adopt */
+		return 0; /* no space activated: nothing to adopt */
 	sp = klet_space_get(c->inst, id);
 	if (!sp)
 		return -ENOENT;
@@ -682,9 +687,9 @@ static int klet_prot_to_pgprot(u32 prot, pgprot_t *out)
 	if (!(prot & KLET_PROT_READ))
 		return -KLET_INVALID;
 	if (prot & KLET_PROT_LARGE)
-		return -KLET_INVALID;		/* 4 KiB pages only, in this version */
+		return -KLET_INVALID; /* 4 KiB pages only, in this version */
 	if (prot & KLET_PROT_CACHE_MASK)
-		return -KLET_INVALID;		/* write-back only */
+		return -KLET_INVALID; /* write-back only */
 	if (prot & KLET_PROT_WRITE)
 		vm_flags |= VM_WRITE;
 	if (prot & KLET_PROT_EXEC)
@@ -710,7 +715,7 @@ static s64 klet_space_insert(struct klet_space *sp, struct vm_area_struct *vma,
 
 	ret = vmf_insert_pfn_prot(vma, va, pfn, pgprot);
 	if (ret & VM_FAULT_OOM)
-		return -KLET_LIMIT;	/* no page-table page */
+		return -KLET_LIMIT; /* no page-table page */
 	if (ret != VM_FAULT_NOPAGE)
 		return -KLET_INVALID;
 
@@ -776,7 +781,8 @@ s64 klet_do_vm_unmap(struct klet_carrier *c, u64 id, u64 va, u64 len)
 	struct klet_space *sp;
 	u64 end;
 
-	if ((va & ~PAGE_MASK) || (len & ~PAGE_MASK) || len == 0 || va + len < va)
+	if ((va & ~PAGE_MASK) || (len & ~PAGE_MASK) || len == 0 ||
+	    va + len < va)
 		return -KLET_INVALID;
 	sp = klet_space_get(c->inst, id);
 	if (!sp)
@@ -795,7 +801,7 @@ s64 klet_do_vm_unmap(struct klet_carrier *c, u64 id, u64 va, u64 len)
 		klet_space_put(sp);
 		return -KLET_INVALID;
 	}
-	zap_vma_ptes(vma, va, end - va);	/* clears and flushes */
+	zap_vma_ptes(vma, va, end - va); /* clears and flushes */
 	mmap_read_unlock(sp->mm);
 	klet_space_put(sp);
 	return 0;
@@ -835,7 +841,7 @@ s64 klet_do_vm_protect(struct klet_carrier *c, u64 id, u64 va, u32 prot)
 	mmap_read_unlock(sp->mm);
 	klet_space_put(sp);
 	if (!ctx.done)
-		return -KLET_INVALID;	/* no entry there: a vOSTD bug */
+		return -KLET_INVALID; /* no entry there: a vOSTD bug */
 	KSTAT_INC(c->inst, protected_);
 	return 1;
 }
@@ -866,7 +872,8 @@ s64 klet_do_vm_flush(struct klet_carrier *c, u64 id, u64 va, u64 len)
 			return -KLET_INVALID;
 		}
 		if (len)
-			flush_tlb_mm_range(sp->mm, va, va + len, PAGE_SHIFT, false);
+			flush_tlb_mm_range(sp->mm, va, va + len, PAGE_SHIFT,
+					   false);
 		KSTAT_INC(c->inst, flushes);
 	}
 	klet_space_put(sp);
@@ -895,7 +902,7 @@ s64 klet_do_vm_wait(struct klet_carrier *c, u64 id, u32 stripe, u64 expected)
 	unsigned long flags;
 
 	if (READ_ONCE(c->vrec.irq_off))
-		return -KLET_STATE;		/* the sleeping contract */
+		return -KLET_STATE; /* the sleeping contract */
 	if (stripe >= KLET_SPACE_LOCK_WORDS)
 		return -KLET_INVALID;
 	sp = klet_space_get(inst, id);
@@ -905,8 +912,8 @@ s64 klet_do_vm_wait(struct klet_carrier *c, u64 id, u32 stripe, u64 expected)
 
 	init_wait_entry(&wait, 0);
 	spin_lock_irqsave(&sp->wq.lock, flags);
-	if (READ_ONCE(sp->rec->lock[stripe]) != expected || READ_ONCE(sp->dying) ||
-	    inst->stopped || inst->dying) {
+	if (READ_ONCE(sp->rec->lock[stripe]) != expected ||
+	    READ_ONCE(sp->dying) || inst->stopped || inst->dying) {
 		spin_unlock_irqrestore(&sp->wq.lock, flags);
 		klet_space_put(sp);
 		return 0;

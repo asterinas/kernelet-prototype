@@ -28,15 +28,15 @@
 #include <linux/types.h>
 
 // Returned by `KLET_GET_API_VERSION`; a runtime refuses any other value.
-#define KLET_API_VERSION	2
+#define KLET_API_VERSION 2
 
 // The ioctl type byte is used by the endovisor.
 // `0xEB` is unassigned in `Documentation/userspace-api/ioctl/ioctl-number.rst` at v6.12.
-#define KLET_IOC		0xEB
+#define KLET_IOC 0xEB
 
-#define KLET_NAME_LEN	32
-#define KLET_MESSAGE_LEN	128
-#define KLET_CMDLINE_MAX	4096
+#define KLET_NAME_LEN 32
+#define KLET_MESSAGE_LEN 128
+#define KLET_CMDLINE_MAX 4096
 
 // ------------------------------------------------------------------
 // The system descriptor
@@ -46,7 +46,7 @@
 //
 // The ioctl takes no argument and returns `KLET_API_VERSION`.
 // This operation cannot fail.
-#define KLET_GET_API_VERSION	_IO(KLET_IOC, 0x00)
+#define KLET_GET_API_VERSION _IO(KLET_IOC, 0x00)
 
 // The ioctl for registering a new kernelet kind by providing a new image.
 //
@@ -79,11 +79,11 @@
 // The file is read as a module file is read,
 // so that the host's security modules see it.
 struct klet_kind_register {
-	__s32	image_fd;
-	__u32	flags;				// must be 0 (`EINVAL`)
-	char	name[KLET_NAME_LEN];	// NUL-terminated
+	__s32 image_fd;
+	__u32 flags; // must be 0 (`EINVAL`)
+	char name[KLET_NAME_LEN]; // NUL-terminated
 };
-#define KLET_KIND_REGISTER		_IOW(KLET_IOC, 0x01, struct klet_kind_register)
+#define KLET_KIND_REGISTER _IOW(KLET_IOC, 0x01, struct klet_kind_register)
 
 // The ioctl for listing registered kinds.
 //
@@ -94,17 +94,17 @@ struct klet_kind_register {
 //
 // The ioctl returns zero on success.
 struct klet_kind_info {
-	__u32	id;
-	__u32	nr_sandboxes;			// sandboxes of this kind that exist now
-	__u64	text_bytes;			// the shared code's size
-	char	name[KLET_NAME_LEN];
+	__u32 id;
+	__u32 nr_sandboxes; // sandboxes of this kind that exist now
+	__u64 text_bytes; // the shared code's size
+	char name[KLET_NAME_LEN];
 };
 struct klet_kind_list {
-	__u64	kinds;				// `struct klet_kind_info *`, user memory
-	__u32	capacity;			// entries available at `kinds`
-	__u32	count;				// out: kinds registered
+	__u64 kinds; // `struct klet_kind_info *`, user memory
+	__u32 capacity; // entries available at `kinds`
+	__u32 count; // out: kinds registered
 };
-#define KLET_KIND_LIST		_IOWR(KLET_IOC, 0x02, struct klet_kind_list)
+#define KLET_KIND_LIST _IOWR(KLET_IOC, 0x02, struct klet_kind_list)
 
 // The ioctl for unregistering a kind and returning its pages to Linux.
 //
@@ -117,7 +117,7 @@ struct klet_kind_list {
 // # Security
 //
 // Unregistering requires the same rights as `KLET_KIND_REGISTER`.
-#define KLET_KIND_UNREGISTER	_IOW(KLET_IOC, 0x03, __u32)
+#define KLET_KIND_UNREGISTER _IOW(KLET_IOC, 0x03, __u32)
 
 // The ioctl for creating a sandbox of a registered kind.
 //
@@ -160,17 +160,17 @@ struct klet_kind_list {
 // `memory_initial` must round to 2 or 4 MiB,
 // the grant being one physically contiguous run (`EINVAL` otherwise).
 struct klet_create {
-	__u32	kind;
-	__u32	nr_vcpus;			// 1 to `KLET_MAX_VCPUS`
-	__u64	memory_initial;
-	__u64	memory_max;
-	__u64	max_tasks;
-	__u64	cmdline;			// `const char *`, user memory; need not be NUL-terminated
-	__u32	cmdline_len;
-	__u32	flags;				// must be 0
+	__u32 kind;
+	__u32 nr_vcpus; // 1 to `KLET_MAX_VCPUS`
+	__u64 memory_initial;
+	__u64 memory_max;
+	__u64 max_tasks;
+	__u64 cmdline; // `const char *`, user memory; need not be NUL-terminated
+	__u32 cmdline_len;
+	__u32 flags; // must be 0
 };
-#define KLET_MAX_VCPUS	64
-#define KLET_CREATE			_IOW(KLET_IOC, 0x04, struct klet_create)
+#define KLET_MAX_VCPUS 64
+#define KLET_CREATE _IOW(KLET_IOC, 0x04, struct klet_create)
 
 // ------------------------------------------------------------------
 // The sandbox descriptor
@@ -217,7 +217,7 @@ struct klet_create {
 // It fails with `EBUSY` if this virtual CPU has already been started,
 // by this descriptor or by another copy of it,
 // and with `ESRCH` if the sandbox has been killed.
-#define KLET_GET_VCPU_EXEC_FD	_IOW(KLET_IOC, 0x10, __u32)
+#define KLET_GET_VCPU_EXEC_FD _IOW(KLET_IOC, 0x10, __u32)
 
 // The ioctl for attaching a virtio device backed by an open file.
 //
@@ -238,17 +238,17 @@ struct klet_create {
 //
 // The endovisor has no devices, so this ioctl fails with `EOPNOTSUPP`.
 enum klet_device_type {
-	KLET_DEVICE_BLOCK	= 1,		// `fd`: a regular file or a block device
-	KLET_DEVICE_NET	= 2,		// `fd`: a TAP interface
+	KLET_DEVICE_BLOCK = 1, // `fd`: a regular file or a block device
+	KLET_DEVICE_NET = 2, // `fd`: a TAP interface
 };
-#define KLET_DEVICE_READONLY	0x1
+#define KLET_DEVICE_READONLY 0x1
 struct klet_device {
-	__u32	type;				// `enum klet_device_type`
-	__s32	fd;
-	__u32	flags;				// `KLET_DEVICE_*`
-	__u32	pad;				// must be 0
+	__u32 type; // `enum klet_device_type`
+	__s32 fd;
+	__u32 flags; // `KLET_DEVICE_*`
+	__u32 pad; // must be 0
 };
-#define KLET_ATTACH_DEVICE		_IOW(KLET_IOC, 0x11, struct klet_device)
+#define KLET_ATTACH_DEVICE _IOW(KLET_IOC, 0x11, struct klet_device)
 
 // The ioctls for setting the sandbox's console and kernel log files.
 //
@@ -269,8 +269,8 @@ struct klet_device {
 //
 // The console carries output only.
 // A console or log not given goes to the host's kernel log, prefixed `kernelet:`.
-#define KLET_SET_CONSOLE		_IOW(KLET_IOC, 0x12, __s32)
-#define KLET_SET_LOG		_IOW(KLET_IOC, 0x13, __s32)
+#define KLET_SET_CONSOLE _IOW(KLET_IOC, 0x12, __s32)
+#define KLET_SET_LOG _IOW(KLET_IOC, 0x13, __s32)
 
 // The ioctl for marking a kernelet dying and recording the reason.
 //
@@ -295,7 +295,7 @@ struct klet_device {
 //
 // Automatic cleanup releases a crashed holder's sandbox
 // once no other process holds a copy of its descriptor.
-#define KLET_KILL			_IOW(KLET_IOC, 0x15, __u32)
+#define KLET_KILL _IOW(KLET_IOC, 0x15, __u32)
 
 // The exit record returned by `read` on a sandbox descriptor.
 //
@@ -330,21 +330,24 @@ struct klet_device {
 // The endovisor reports a panic as `KLET_END_EXITED`, as a power-off, with no message.
 // Of the endovisor's own reasons, it detects only `KLET_KILLED_CARRIER_LOST`.
 enum klet_end {
-	KLET_END_EXITED	= 1,		// the kernel proper powered off
-	KLET_END_PANICKED	= 2,		// a panic nothing in it caught
-	KLET_END_KILLED	= 3,		// the host decided
+	KLET_END_EXITED = 1, // the kernel proper powered off
+	KLET_END_PANICKED = 2, // a panic nothing in it caught
+	KLET_END_KILLED = 3, // the host decided
 };
-#define KLET_KILLED_REQUESTED	0x80000000u	// the last copy of the descriptor closed
-#define KLET_KILLED_CARRIER_LOST	0x80000001u	// a carrier died: `SIGKILL`, the OOM killer
-#define KLET_KILLED_FAULT		0x80000002u	// a fault in kernelet code
-#define KLET_KILLED_STACK		0x80000003u	// a kernelet stack nearly exhausted
-#define KLET_KILLED_HOST_COUNT	0x80000004u	// Linux's preemption count found wrong
+#define KLET_KILLED_REQUESTED \
+	0x80000000u // the last copy of the descriptor closed
+#define KLET_KILLED_CARRIER_LOST \
+	0x80000001u // a carrier died: `SIGKILL`, the OOM killer
+#define KLET_KILLED_FAULT 0x80000002u // a fault in kernelet code
+#define KLET_KILLED_STACK 0x80000003u // a kernelet stack nearly exhausted
+#define KLET_KILLED_HOST_COUNT \
+	0x80000004u // Linux's preemption count found wrong
 struct klet_exit {
-	__u32	how;				// `enum klet_end`
-	__s32	code;
-	__u32	reason;
-	__u32	pad;
-	char	message[KLET_MESSAGE_LEN];
+	__u32 how; // `enum klet_end`
+	__s32 code;
+	__u32 reason;
+	__u32 pad;
+	char message[KLET_MESSAGE_LEN];
 };
 
 // The ioctl for reading a sandbox's state, exit record, counters, and virtual CPU statistics.
@@ -360,36 +363,37 @@ struct klet_exit {
 //
 // The ioctl returns zero on success.
 enum klet_state {
-	KLET_STATE_CREATED	= 1,		// no carrier yet
-	KLET_STATE_STARTING	= 2,		// some carriers have arrived
-	KLET_STATE_RUNNING	= 3,
-	KLET_STATE_DYING	= 4,		// marked; carriers being stopped
-	KLET_STATE_EXITED	= 5,		// no carrier of the sandbox is left
+	KLET_STATE_CREATED = 1, // no carrier yet
+	KLET_STATE_STARTING = 2, // some carriers have arrived
+	KLET_STATE_RUNNING = 3,
+	KLET_STATE_DYING = 4, // marked; carriers being stopped
+	KLET_STATE_EXITED = 5, // no carrier of the sandbox is left
 };
 enum klet_vcpu_state {
-	KLET_VCPU_UNSTARTED	= 0,		// its exec descriptor has not been executed
-	KLET_VCPU_WAITING	= 1,		// arrived; waiting for the others, or for `vcpu_boot`
-	KLET_VCPU_RUNNING	= 2,
-	KLET_VCPU_GONE	= 3,
+	KLET_VCPU_UNSTARTED = 0, // its exec descriptor has not been executed
+	KLET_VCPU_WAITING =
+		1, // arrived; waiting for the others, or for `vcpu_boot`
+	KLET_VCPU_RUNNING = 2,
+	KLET_VCPU_GONE = 3,
 };
 struct klet_vcpu_stat {
-	__s32	pid;				// the carrier's process identifier, 0 if unstarted
-	__u32	state;				// `enum klet_vcpu_state`
-	__u64	run_ns;				// time the carrier has run
-	__u64	stolen_ns;			// time it was runnable but not running
+	__s32 pid; // the carrier's process identifier, 0 if unstarted
+	__u32 state; // `enum klet_vcpu_state`
+	__u64 run_ns; // time the carrier has run
+	__u64 stolen_ns; // time it was runnable but not running
 };
 struct klet_stats {
-	__u32	state;				// `enum klet_state`
-	__u32	nr_vcpus;			// out
-	__u64	memory_granted;			// bytes
-	__u64	service_calls;
-	__u64	virqs_raised;
-	__u64	log_dropped;
-	__u64	vcpus;				// `struct klet_vcpu_stat *`, user memory
-	__u32	capacity;			// rows available at `vcpus`
-	__u32	slot;				// out: the sandbox's index in the endovisor's table; names its carriers
-	struct klet_exit exit;			// out: final exit record, zero before exit
+	__u32 state; // `enum klet_state`
+	__u32 nr_vcpus; // out
+	__u64 memory_granted; // bytes
+	__u64 service_calls;
+	__u64 virqs_raised;
+	__u64 log_dropped;
+	__u64 vcpus; // `struct klet_vcpu_stat *`, user memory
+	__u32 capacity; // rows available at `vcpus`
+	__u32 slot; // out: the sandbox's index in the endovisor's table; names its carriers
+	struct klet_exit exit; // out: final exit record, zero before exit
 };
-#define KLET_GET_STATS		_IOWR(KLET_IOC, 0x17, struct klet_stats)
+#define KLET_GET_STATS _IOWR(KLET_IOC, 0x17, struct klet_stats)
 
 #endif // `_UAPI_LINUX_KLET_H`

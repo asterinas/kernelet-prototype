@@ -79,8 +79,9 @@
  */
 bool klet_watch = true;
 module_param(klet_watch, bool, 0444);
-MODULE_PARM_DESC(klet_watch,
-		 "tick each processor, deliver virtual interrupts and bound how long kernelet code may keep it (default on)");
+MODULE_PARM_DESC(
+	klet_watch,
+	"tick each processor, deliver virtual interrupts and bound how long kernelet code may keep it (default on)");
 
 static DEFINE_PER_CPU(struct hrtimer, klet_watch_timer);
 static bool klet_watch_ready;
@@ -176,13 +177,15 @@ static enum hrtimer_restart klet_watch_fn(struct hrtimer *timer)
 	if (requested)
 		atomic_inc(&inst->n.watch_fires);
 	if (tick) {
-		u64 t = ktime_get_mono_fast_ns(), last = this_cpu_read(klet_watch_last_tick);
+		u64 t = ktime_get_mono_fast_ns(),
+		    last = this_cpu_read(klet_watch_last_tick);
 
 		atomic_inc(&inst->n.ticks);
 		if (last && t > last) {
 			u32 gap_us = (u32)((t - last) / 1000);
 
-			if (gap_us > (u32)atomic_read(&inst->longest_tick_gap_us))
+			if (gap_us >
+			    (u32)atomic_read(&inst->longest_tick_gap_us))
 				atomic_set(&inst->longest_tick_gap_us, gap_us);
 		}
 		this_cpu_write(klet_watch_last_tick, t);
@@ -273,7 +276,7 @@ static enum hrtimer_restart klet_watch_fn(struct hrtimer *timer)
 			atomic_set(&inst->longest_defer_us, held_us);
 	}
 	if (now - c->strike1_ns < NSEC_PER_MSEC)
-		goto again;	/* strike one was less than a tick ago */
+		goto again; /* strike one was less than a tick ago */
 	c->strike1_ns = 0;
 	c->yield_ip = regs->ip;
 	c->forced = true;
@@ -289,17 +292,21 @@ static enum hrtimer_restart klet_watch_fn(struct hrtimer *timer)
 		int i = atomic_inc_return(&inst->forced_recorded) - 1;
 
 		if (i < KLET_FORCED_RECORDS)
-			inst->forced_rec[i] = (struct klet_forced_rec) {
-				.vcpu = c->vcpu, .pid = current->pid,
-				.cpu = smp_processor_id(), .ip = c->yield_ip,
-				.guards = klet_guards(c), .irq_off = klet_irq_off(c),
+			inst->forced_rec[i] = (struct klet_forced_rec){
+				.vcpu = c->vcpu,
+				.pid = current->pid,
+				.cpu = smp_processor_id(),
+				.ip = c->yield_ip,
+				.guards = klet_guards(c),
+				.irq_off = klet_irq_off(c),
 			};
 	}
 
 again:
 	if (!tick) {
 		/* Back to the period the request cut short. */
-		hrtimer_set_expires(timer, this_cpu_read(klet_watch_period_end));
+		hrtimer_set_expires(timer,
+				    this_cpu_read(klet_watch_period_end));
 		return HRTIMER_RESTART;
 	}
 	hrtimer_forward_now(timer, ns_to_ktime(KLET_WATCH_INTERVAL_NS));
@@ -318,7 +325,8 @@ void klet_watch_fire_now(void)
 	struct hrtimer *timer = this_cpu_ptr(&klet_watch_timer);
 	ktime_t end;
 
-	if (!klet_watch || !klet_watch_ready || this_cpu_read(klet_watch_requested))
+	if (!klet_watch || !klet_watch_ready ||
+	    this_cpu_read(klet_watch_requested))
 		return;
 
 	if (hrtimer_active(timer))
@@ -355,7 +363,8 @@ int klet_watch_init(void)
 {
 	int cpu;
 
-	for_each_possible_cpu(cpu) {
+	for_each_possible_cpu(cpu)
+	{
 		struct hrtimer *timer = per_cpu_ptr(&klet_watch_timer, cpu);
 
 		hrtimer_init(timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL_HARD);

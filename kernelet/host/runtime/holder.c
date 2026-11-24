@@ -51,10 +51,11 @@
 
 static void usage(void)
 {
-	fprintf(stderr, "usage: holder register NAME IMAGE\n"
-			"       holder run [-c CGROUP] [-p] [-k] [--console FILE] [--log FILE]\n"
-			"                  [--seccomp-kill NR] [--kill-after MS] [--klet-kill-after MS]\n"
-			"                  NAME NR_VCPUS [CMDLINE...]\n");
+	fprintf(stderr,
+		"usage: holder register NAME IMAGE\n"
+		"       holder run [-c CGROUP] [-p] [-k] [--console FILE] [--log FILE]\n"
+		"                  [--seccomp-kill NR] [--kill-after MS] [--klet-kill-after MS]\n"
+		"                  NAME NR_VCPUS [CMDLINE...]\n");
 	exit(2);
 }
 
@@ -67,31 +68,49 @@ int main(int argc, char **argv)
 	if (argc >= 4 && strcmp(argv[1], "register") == 0) {
 		sys_fd = open_system();
 		sandbox_say("kind %d registered: %s from %s",
-			    register_kind(sys_fd, argv[2], argv[3]), argv[2], argv[3]);
+			    register_kind(sys_fd, argv[2], argv[3]), argv[2],
+			    argv[3]);
 		return 0;
 	}
 	if (argc < 2 || strcmp(argv[1], "run") != 0)
 		usage();
-	argv += 2; argc -= 2;
+	argv += 2;
+	argc -= 2;
 	while (argc > 0 && argv[0][0] == '-') {
 		const char *o = argv[0];
 
 		if (strcmp(o, "-p") == 0) {
-			opt.pin = 1; argv++; argc--;
+			opt.pin = 1;
+			argv++;
+			argc--;
 		} else if (strcmp(o, "-k") == 0) {
-			opt.kernel_log = 1; argv++; argc--;
+			opt.kernel_log = 1;
+			argv++;
+			argc--;
 		} else if (argc > 1 && strcmp(o, "-c") == 0) {
-			opt.cgroup = argv[1]; argv += 2; argc -= 2;
+			opt.cgroup = argv[1];
+			argv += 2;
+			argc -= 2;
 		} else if (argc > 1 && strcmp(o, "--console") == 0) {
-			opt.console_path = argv[1]; argv += 2; argc -= 2;
+			opt.console_path = argv[1];
+			argv += 2;
+			argc -= 2;
 		} else if (argc > 1 && strcmp(o, "--log") == 0) {
-			opt.log_path = argv[1]; argv += 2; argc -= 2;
+			opt.log_path = argv[1];
+			argv += 2;
+			argc -= 2;
 		} else if (argc > 1 && strcmp(o, "--seccomp-kill") == 0) {
-			opt.seccomp_kill_nr = atoi(argv[1]); argv += 2; argc -= 2;
+			opt.seccomp_kill_nr = atoi(argv[1]);
+			argv += 2;
+			argc -= 2;
 		} else if (argc > 1 && strcmp(o, "--kill-after") == 0) {
-			opt.kill_after_ms = atoi(argv[1]); argv += 2; argc -= 2;
+			opt.kill_after_ms = atoi(argv[1]);
+			argv += 2;
+			argc -= 2;
 		} else if (argc > 1 && strcmp(o, "--klet-kill-after") == 0) {
-			opt.klet_kill_after_ms = atoi(argv[1]); argv += 2; argc -= 2;
+			opt.klet_kill_after_ms = atoi(argv[1]);
+			argv += 2;
+			argc -= 2;
 		} else {
 			usage();
 		}
@@ -105,8 +124,10 @@ int main(int argc, char **argv)
 
 		for (i = 2; i < argc; i++) {
 			if (i > 2)
-				strncat(cmdline, " ", sizeof(cmdline) - strlen(cmdline) - 1);
-			strncat(cmdline, argv[i], sizeof(cmdline) - strlen(cmdline) - 1);
+				strncat(cmdline, " ",
+					sizeof(cmdline) - strlen(cmdline) - 1);
+			strncat(cmdline, argv[i],
+				sizeof(cmdline) - strlen(cmdline) - 1);
 		}
 		if (nr_vcpus < 1 || nr_vcpus > KLET_MAX_VCPUS)
 			usage();
@@ -115,6 +136,7 @@ int main(int argc, char **argv)
 	}
 	close(sys_fd);
 	refs = module_references("endovisor");
-	sandbox_say("no carrier left (module references: %d)", refs < 0 ? 0 : refs);
+	sandbox_say("no carrier left (module references: %d)",
+		    refs < 0 ? 0 : refs);
 	return status;
 }

@@ -57,14 +57,13 @@ impl<M: AnyFrameMeta + ?Sized> Frame<M> {
     pub(crate) fn from_raw(paddr: Paddr) -> Self {
         OWNER_CHECKS.fetch_add(1, Ordering::Relaxed);
         allocator::note_from_raw(paddr, core::panic::Location::caller());
-        let refs = allocator::refcount(paddr)
-            .unwrap_or_else(|| {
-                let (base, n) = allocator::bounds();
-                panic!(
-                    "Frame::from_raw({:#x}): not a frame of the grant [{:#x}, +{} frames)",
-                    paddr, base, n
-                )
-            });
+        let refs = allocator::refcount(paddr).unwrap_or_else(|| {
+            let (base, n) = allocator::bounds();
+            panic!(
+                "Frame::from_raw({:#x}): not a frame of the grant [{:#x}, +{} frames)",
+                paddr, base, n
+            )
+        });
         assert!(
             refs > 0,
             "Frame::from_raw({:#x}): a stale frame, already given back",
@@ -164,7 +163,9 @@ impl<M: AnyFrameMeta + ?Sized> Deref for FrameRef<'_, M> {
 
 impl<M: AnyFrameMeta + ?Sized> core::fmt::Debug for FrameRef<'_, M> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("FrameRef").field("paddr", &self.inner.paddr).finish()
+        f.debug_struct("FrameRef")
+            .field("paddr", &self.inner.paddr)
+            .finish()
     }
 }
 
@@ -393,7 +394,7 @@ pub mod allocator {
     fn index(paddr: Paddr) -> Option<usize> {
         let base = BASE.load(Ordering::Relaxed);
         let total = NFRAMES.load(Ordering::Acquire);
-        if paddr < base || paddr % PAGE_SIZE != 0 {
+        if paddr < base || !paddr.is_multiple_of(PAGE_SIZE) {
             return None;
         }
         let i = (paddr - base) / PAGE_SIZE;
@@ -406,7 +407,10 @@ pub mod allocator {
 
     /// The grant's base and size in frames, for diagnostics.
     pub(crate) fn bounds() -> (Paddr, usize) {
-        (BASE.load(Ordering::Relaxed), NFRAMES.load(Ordering::Relaxed))
+        (
+            BASE.load(Ordering::Relaxed),
+            NFRAMES.load(Ordering::Relaxed),
+        )
     }
 
     /// The frame's reference count, or `None` if it is not a frame of the grant.
@@ -422,7 +426,8 @@ pub mod allocator {
 
     /// Where each frame's reference was last taken back from a page table, for
     /// the report of a reference dropped twice.
-    static LAST_FROM_RAW: [core::sync::atomic::AtomicPtr<core::panic::Location<'static>>; MAX_FRAMES] =
+    static LAST_FROM_RAW: [core::sync::atomic::AtomicPtr<core::panic::Location<'static>>;
+        MAX_FRAMES] =
         [const { core::sync::atomic::AtomicPtr::new(core::ptr::null_mut()) }; MAX_FRAMES];
 
     pub(crate) fn note_from_raw(paddr: Paddr, at: &'static core::panic::Location<'static>) {
@@ -437,11 +442,17 @@ pub mod allocator {
         if old == 0 {
             let at = LAST_FROM_RAW[i].load(Ordering::Relaxed);
             if at.is_null() {
-                panic!("a reference dropped on a free frame {:#x} (never taken back from a table)", paddr);
+                panic!(
+                    "a reference dropped on a free frame {:#x} (never taken back from a table)",
+                    paddr
+                );
             }
             // SAFETY: only `&'static Location`s are stored.
             let at = unsafe { &*at };
-            panic!("a reference dropped on a free frame {:#x}; last taken back from a table at {}", paddr, at);
+            panic!(
+                "a reference dropped on a free frame {:#x}; last taken back from a table at {}",
+                paddr, at
+            );
         }
         if old == 1 {
             core::sync::atomic::fence(Ordering::Acquire);
@@ -468,12 +479,10 @@ pub mod allocator {
         let guard = Guard::lock();
         let bits = guard.bits();
         let mut start = 0;
-        'outer: while start + nframes <= total {
-            for i in start..start + nframes {
-                if test(bits, i) {
-                    start = i + 1;
-                    continue 'outer;
-                }
+        while start + nframes <= total {
+            if let Some(used) = (start..start + nframes).find(|&i| test(bits, i)) {
+                start = used + 1;
+                continue;
             }
             for i in start..start + nframes {
                 bits[i / 64] |= 1u64 << (i % 64);
@@ -503,9 +512,7 @@ pub mod allocator {
     fn zero(paddr: Paddr, nframes: usize) {
         // SAFETY: the run was just allocated out of the grant, so its linear-map
         // alias is valid for writes of `nframes` pages.
-        unsafe {
-            core::ptr::write_bytes(paddr_to_vaddr(paddr) as *mut u8, 0, nframes * PAGE_SIZE)
-        };
+        unsafe { core::ptr::write_bytes(paddr_to_vaddr(paddr) as *mut u8, 0, nframes * PAGE_SIZE) };
     }
 
     /// Options for allocating physical memory frames.

@@ -29,7 +29,7 @@
 #include <unistd.h>
 
 #define MODULE_DIR "/modules"
-#define TEST_DIR   "/tests"
+#define TEST_DIR "/tests"
 #define MAX_MODULES 64
 #define NAME_MAX_LEN 256
 
@@ -56,8 +56,7 @@ static void out(const char *s)
 	tcdrain(1);
 }
 
-__attribute__((format(printf, 1, 2)))
-static void outf(const char *fmt, ...)
+__attribute__((format(printf, 1, 2))) static void outf(const char *fmt, ...)
 {
 	char buf[512];
 	va_list ap;
@@ -91,8 +90,8 @@ static void mount_one(const char *src, const char *target, const char *type)
 {
 	mkdir(target, 0755);
 	if (mount(src, target, type, 0, NULL) != 0 && errno != EBUSY)
-		outf("INIT: mount %s on %s failed: %s\n",
-		     type, target, strerror(errno));
+		outf("INIT: mount %s on %s failed: %s\n", type, target,
+		     strerror(errno));
 }
 
 /*
@@ -118,14 +117,15 @@ static void ensure_console(void)
 
 /* --- modules ---------------------------------------------------------- */
 
-static char mod_files[MAX_MODULES][NAME_MAX_LEN];	/* e.g. "smoke.ko" */
-static char mod_args[MAX_MODULES][NAME_MAX_LEN];	/* e.g. "klet_tick=0" */
-static int  mod_count;
-static char loaded[MAX_MODULES][NAME_MAX_LEN];		/* e.g. "smoke" */
-static int  loaded_count;
+static char mod_files[MAX_MODULES][NAME_MAX_LEN]; /* e.g. "smoke.ko" */
+static char mod_args[MAX_MODULES][NAME_MAX_LEN]; /* e.g. "klet_tick=0" */
+static int mod_count;
+static char loaded[MAX_MODULES][NAME_MAX_LEN]; /* e.g. "smoke" */
+static int loaded_count;
 
 /* dir + "/" + name, with name capped so the compiler can see the bound. */
-static void path_join(char *buf, size_t buflen, const char *dir, const char *name)
+static void path_join(char *buf, size_t buflen, const char *dir,
+		      const char *name)
 {
 	snprintf(buf, buflen, "%s/%.*s", dir, NAME_MAX_LEN - 1, name);
 }
@@ -193,14 +193,15 @@ static int read_order(void)
 			args = "";
 		}
 		if (!ends_with_ko(p)) {
-			outf("INIT: /modules/order: ignoring '%s' (not a .ko)\n", p);
+			outf("INIT: /modules/order: ignoring '%s' (not a .ko)\n",
+			     p);
 			continue;
 		}
 		add_module_file_args(p, args);
 	}
 	fclose(f);
-	outf("INIT: module order from %s/order (%d entr%s)\n",
-	     MODULE_DIR, mod_count, mod_count == 1 ? "y" : "ies");
+	outf("INIT: module order from %s/order (%d entr%s)\n", MODULE_DIR,
+	     mod_count, mod_count == 1 ? "y" : "ies");
 	return 1;
 }
 
@@ -218,8 +219,8 @@ static void scan_modules(void)
 	d = opendir(MODULE_DIR);
 	if (!d) {
 		if (errno != ENOENT)
-			outf("INIT: opendir %s failed: %s\n",
-			     MODULE_DIR, strerror(errno));
+			outf("INIT: opendir %s failed: %s\n", MODULE_DIR,
+			     strerror(errno));
 		return;
 	}
 	while ((de = readdir(d)) != NULL) {
@@ -250,7 +251,7 @@ static void module_name(const char *file, char *buf, size_t buflen)
 	size_t i;
 
 	if (len > 3)
-		len -= 3;			/* drop ".ko" */
+		len -= 3; /* drop ".ko" */
 	if (len >= buflen)
 		len = buflen - 1;
 	for (i = 0; i < len; i++)
@@ -271,11 +272,13 @@ static void load_modules(void)
 		path_join(path, sizeof(path), MODULE_DIR, mod_files[i]);
 		fd = open(path, O_RDONLY | O_CLOEXEC);
 		if (fd < 0) {
-			outf("INIT: open %s failed: %s\n", path, strerror(errno));
+			outf("INIT: open %s failed: %s\n", path,
+			     strerror(errno));
 			continue;
 		}
 		if (mod_args[i][0] != '\0')
-			outf("INIT: loading %s %s\n", mod_files[i], mod_args[i]);
+			outf("INIT: loading %s %s\n", mod_files[i],
+			     mod_args[i]);
 		else
 			outf("INIT: loading %s\n", mod_files[i]);
 		if (finit_module(fd, mod_args[i], 0) != 0) {
@@ -307,8 +310,8 @@ static void unload_modules(void)
 static void run_one(const char *path)
 {
 	char *const argv[] = { (char *)path, NULL };
-	char *const envp[] = { (char *)"PATH=/tests:/",
-			       (char *)"HOME=/", NULL };
+	char *const envp[] = { (char *)"PATH=/tests:/", (char *)"HOME=/",
+			       NULL };
 	int status = 0;
 	pid_t pid, done;
 
@@ -351,8 +354,8 @@ static void run_tests(void)
 	d = opendir(TEST_DIR);
 	if (!d) {
 		if (errno != ENOENT)
-			outf("INIT: opendir %s failed: %s\n",
-			     TEST_DIR, strerror(errno));
+			outf("INIT: opendir %s failed: %s\n", TEST_DIR,
+			     strerror(errno));
 		out("INIT: no tests to run\n");
 		return;
 	}
@@ -397,7 +400,8 @@ int main(void)
 	 * every five seconds.
 	 */
 	{
-		int fd = open("/proc/sys/kernel/printk_devkmsg", O_WRONLY | O_CLOEXEC);
+		int fd = open("/proc/sys/kernel/printk_devkmsg",
+			      O_WRONLY | O_CLOEXEC);
 
 		if (fd >= 0) {
 			if (write(fd, "on\n", 3) != 3)

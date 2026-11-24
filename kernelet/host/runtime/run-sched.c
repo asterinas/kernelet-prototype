@@ -64,7 +64,6 @@ static uint64_t rdtsc(void)
 	return ((uint64_t)hi << 32) | lo;
 }
 
-
 static int write_file(const char *path, const char *value)
 {
 	int fd = open(path, O_WRONLY);
@@ -117,7 +116,8 @@ static void setup_cgroups(void)
 	write_file(CG_KLET "/cpu.weight", "100");
 	write_file(CG_SIB "/cpu.weight", "100");
 	cgroups_up = 1;
-	say("control groups up: %s and %s, cpu.weight 100 each", CG_KLET, CG_SIB);
+	say("control groups up: %s and %s, cpu.weight 100 each", CG_KLET,
+	    CG_SIB);
 }
 
 static void join_group(const char *cg)
@@ -198,7 +198,7 @@ static pid_t spawn_holder(unsigned int nr_vcpus, const char *cmdline)
 		sandbox_opts_init(&opt);
 		opt.cgroup = cgroups_up ? CG_KLET : CG "/sandbox";
 		opt.cpu_lo = 0;
-		opt.cpu_hi = 1;	/* the carriers inherit nothing else */
+		opt.cpu_hi = 1; /* the carriers inherit nothing else */
 		opt.kernel_log = 1;
 		opt.during = publish_carriers;
 		sys_fd = open_system();
@@ -207,8 +207,8 @@ static pid_t spawn_holder(unsigned int nr_vcpus, const char *cmdline)
 		close(sys_fd);
 		_exit(status);
 	}
-	say("the holder is pid %d; the sandbox's carriers will be on cpu 0-1, in %s", pid,
-	    cgroups_up ? CG_KLET : CG "/sandbox");
+	say("the holder is pid %d; the sandbox's carriers will be on cpu 0-1, in %s",
+	    pid, cgroups_up ? CG_KLET : CG "/sandbox");
 	return pid;
 }
 
@@ -272,8 +272,8 @@ static void report(const char *name, uint64_t *s, int n)
 	}
 	qsort(s, n, sizeof(*s), cmp_u64);
 	printf("NATIVE-PERF %s n=%d median=%llu p99=%llu min=%llu\n", name, n,
-	       (unsigned long long)s[n / 2], (unsigned long long)s[(n * 99) / 100],
-	       (unsigned long long)s[0]);
+	       (unsigned long long)s[n / 2],
+	       (unsigned long long)s[(n * 99) / 100], (unsigned long long)s[0]);
 	fflush(stdout);
 }
 
@@ -372,8 +372,8 @@ static void native_pipe_wake(int same_cpu)
 	kill(pid, SIGKILL);
 	waitpid(pid, NULL, 0);
 	pin_to(0, 1);
-	report(same_cpu ? "linux_pipe_wake_same_cpu_cycles"
-			: "linux_pipe_wake_other_cpu_cycles",
+	report(same_cpu ? "linux_pipe_wake_same_cpu_cycles" :
+			  "linux_pipe_wake_other_cpu_cycles",
 	       s, n);
 	free(s);
 }
@@ -391,8 +391,8 @@ int main(void)
 	unsigned int nr_vcpus;
 
 	/* init runs the tests without arguments, so the mode is staged beside the test. */
-	sandbox_read_staged("/tests/10-sched.arg", mode, sizeof(mode), &nr_vcpus,
-			    cmdline, sizeof(cmdline));
+	sandbox_read_staged("/tests/10-sched.arg", mode, sizeof(mode),
+			    &nr_vcpus, cmdline, sizeof(cmdline));
 
 	sandbox_who = "RUN-SCHED";
 	shm = mmap(NULL, sizeof(*shm), PROT_READ | PROT_WRITE,
@@ -437,7 +437,8 @@ int main(void)
 
 		if (comp[0] > 0) {
 			sib_usec = read_key(CG_SIB "/cpu.stat", "usage_usec ");
-			klet_usec = read_key(CG_KLET "/cpu.stat", "usage_usec ");
+			klet_usec =
+				read_key(CG_KLET "/cpu.stat", "usage_usec ");
 			shm->stop = 1;
 			for (i = 0; i < 2; i++)
 				if (comp[i] > 0)
@@ -450,7 +451,8 @@ int main(void)
 		say("no carrier left (module references: %d)", i < 0 ? 0 : i);
 
 		if (WIFEXITED(status))
-			say("the holder (pid %d) exited %d", holder, WEXITSTATUS(status));
+			say("the holder (pid %d) exited %d", holder,
+			    WEXITSTATUS(status));
 		else if (WIFSIGNALED(status))
 			say("the holder (pid %d) killed by signal %d", holder,
 			    WTERMSIG(status));
@@ -462,7 +464,8 @@ int main(void)
 			say("competitor rounds %llu over %llu ms", total,
 			    (unsigned long long)elapsed);
 			if (sib_usec >= 0 && (long)sib_usec0 >= 0)
-				say("SIB-USEC %ld elapsed_ms %llu", sib_usec - (long)sib_usec0,
+				say("SIB-USEC %ld elapsed_ms %llu",
+				    sib_usec - (long)sib_usec0,
 				    (unsigned long long)elapsed);
 			if (klet_usec >= 0)
 				say("KLET-USEC %ld", klet_usec);

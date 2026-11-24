@@ -354,7 +354,11 @@ pub(crate) fn linear_map_base() -> usize {
 pub(crate) fn space_rec(id: u64) -> &'static SpaceRec {
     let base = SPACE_RECS.load(Ordering::Relaxed);
     let n = NR_SPACE_RECS.load(Ordering::Relaxed);
-    assert!(base != 0 && id >= 1 && (id as usize) <= n, "no record for space {}", id);
+    assert!(
+        base != 0 && id >= 1 && (id as usize) <= n,
+        "no record for space {}",
+        id
+    );
     // SAFETY: the endovisor allocated `n` records at `base` for the instance's
     // lifetime, and every field is atomic.
     unsafe { &*((base as *const SpaceRec).add(id as usize - 1)) }

@@ -22,12 +22,17 @@ use crate::{abi, abi::svc, sync::r2};
 #[cold]
 fn map_failed(va: Vaddr, paddr: Paddr, err: i64) -> ! {
     let what = match -err {
-        abi::KLET_INVALID => "the slot is not empty (a vOSTD bug: the range lock should exclude it)",
+        abi::KLET_INVALID => {
+            "the slot is not empty (a vOSTD bug: the range lock should exclude it)"
+        }
         abi::KLET_NOT_OWNED => "the frame is not this kernelet's",
         abi::KLET_LIMIT => "no page-table page could be allocated",
         _ => "an unexpected error",
     };
-    panic!("map of {:#x} at {:#x} failed with {}: {}", paddr, va, err, what);
+    panic!(
+        "map of {:#x} at {:#x} failed with {}: {}",
+        paddr, va, err, what
+    );
 }
 
 /// Every sleeping service's stub: the sleeping contract's assertion, and then
@@ -112,7 +117,11 @@ impl Backend {
 
     /// `len == usize::MAX`: everything. Never sleeps.
     pub(crate) fn flush(&self, va: Vaddr, len: usize) {
-        let len = if len == usize::MAX { u64::MAX } else { len as u64 };
+        let len = if len == usize::MAX {
+            u64::MAX
+        } else {
+            len as u64
+        };
         // SAFETY: a TLB flush of this kernelet's space.
         let r = unsafe { (svc().vm_flush)(self.id, va as u64, len) };
         assert!(r == 0, "vm_flush failed with {}", r);

@@ -21,9 +21,7 @@ pub use self::{
         untyped::{AnyUFrameMeta, UFrame},
         Frame, FrameRef,
     },
-    io::{
-        Fallible, FallibleVmRead, FallibleVmWrite, Infallible, VmIo, VmReader, VmWriter,
-    },
+    io::{Fallible, FallibleVmRead, FallibleVmWrite, Infallible, VmIo, VmReader, VmWriter},
     page_prop::{CachePolicy, PageFlags, PageProperty},
     vm_space::{Cursor, CursorMut, VmQueriedItem, VmSpace},
 };

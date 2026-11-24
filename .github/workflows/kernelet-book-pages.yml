@@ -6,6 +6,7 @@ on:
     paths:
       - kernelet/**
       - .github/workflows/kernelet-book-pages.yml
+      - .github/actions/setup-kernelet-book/**
   workflow_dispatch:
 
 permissions:
@@ -14,10 +15,6 @@ permissions:
 concurrency:
   group: github-pages
   cancel-in-progress: false
-
-env:
-  MDBOOK_VERSION: 0.5.2
-  MDBOOK_MERMAID_VERSION: 0.17.0
 
 jobs:
   build:
@@ -37,19 +34,7 @@ jobs:
         id: pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
 
-      - name: Install mdBook and Mermaid
-        shell: bash
-        run: |
-          mkdir -p "$RUNNER_TEMP/book-bin"
-          curl --fail --silent --show-error --location --retry 3 \
-            "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VERSION}/mdbook-v${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
-            --output "$RUNNER_TEMP/mdbook.tar.gz"
-          curl --fail --silent --show-error --location --retry 3 \
-            "https://github.com/badboy/mdbook-mermaid/releases/download/v${MDBOOK_MERMAID_VERSION}/mdbook-mermaid-v${MDBOOK_MERMAID_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
-            --output "$RUNNER_TEMP/mdbook-mermaid.tar.gz"
-          tar -xzf "$RUNNER_TEMP/mdbook.tar.gz" -C "$RUNNER_TEMP/book-bin"
-          tar -xzf "$RUNNER_TEMP/mdbook-mermaid.tar.gz" -C "$RUNNER_TEMP/book-bin"
-          echo "$RUNNER_TEMP/book-bin" >> "$GITHUB_PATH"
+      - uses: ./.github/actions/setup-kernelet-book
 
       - name: Check and build the book
         env:

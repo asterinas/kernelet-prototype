@@ -13,7 +13,7 @@
 //! The walk is the four-level x86-64 one; vOSTD refuses to start on a host
 //! that uses five levels.
 
-use super::{paddr_to_vaddr, PageFlags, Paddr, Vaddr, PAGE_SIZE};
+use super::{paddr_to_vaddr, Paddr, PageFlags, Vaddr, PAGE_SIZE};
 
 /// x86-64 page table entry bits.
 #[allow(dead_code)]
@@ -77,16 +77,16 @@ fn leaf_of(e: u64) -> Option<Leaf> {
     }
     let mut flags = PageFlags::R;
     if e & pte::WRITE != 0 {
-        flags = flags | PageFlags::W;
+        flags |= PageFlags::W;
     }
     if e & pte::NO_EXECUTE == 0 {
-        flags = flags | PageFlags::X;
+        flags |= PageFlags::X;
     }
     if e & pte::ACCESSED != 0 {
-        flags = flags | PageFlags::ACCESSED;
+        flags |= PageFlags::ACCESSED;
     }
     if e & pte::DIRTY != 0 {
-        flags = flags | PageFlags::DIRTY;
+        flags |= PageFlags::DIRTY;
     }
     Some(Leaf {
         paddr: (e & pte::ADDR_MASK) as Paddr,
@@ -150,7 +150,7 @@ fn visit(
 ) -> bool {
     let size = level_size(level);
     let first = if va > base { (va - base) / size } else { 0 };
-    let last = core::cmp::min(512, (end - base + size - 1) / size);
+    let last = core::cmp::min(512, (end - base).div_ceil(size));
     for idx in first..last {
         let slot = base + idx * size;
         if slot >= end || (level == NR_LEVELS && slot >= super::MAX_USERSPACE_VADDR + PAGE_SIZE) {

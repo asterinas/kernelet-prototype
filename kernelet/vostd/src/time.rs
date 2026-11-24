@@ -53,4 +53,3 @@ pub fn now_ns() -> u64 {
     // cycles / (khz / 1e6) nanoseconds, without overflowing for hours of uptime.
     (cycles / khz) * 1_000_000 + ((cycles % khz) * 1_000_000) / khz
 }
-

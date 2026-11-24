@@ -69,13 +69,15 @@ void klet_inst_put(struct klet_inst *inst)
  * holding one of its own spin locks: no blocking here. The line goes into the
  * ring whole or not at all (log_dropped counts it), and the work item writes it.
  */
-void klet_out_write(struct klet_inst *inst, struct klet_out *out, const char *ptr, u64 len)
+void klet_out_write(struct klet_inst *inst, struct klet_out *out,
+		    const char *ptr, u64 len)
 {
 	unsigned long flags;
 	bool ok;
 
 	spin_lock_irqsave(&out->lock, flags);
-	ok = kfifo_initialized(&out->fifo) && kfifo_avail(&out->fifo) >= len + 1;
+	ok = kfifo_initialized(&out->fifo) &&
+	     kfifo_avail(&out->fifo) >= len + 1;
 	if (ok) {
 		kfifo_in(&out->fifo, ptr, len);
 		kfifo_in(&out->fifo, "\n", 1);
@@ -98,7 +100,8 @@ static void klet_out_drain(struct klet_out *out)
 	for (;;) {
 		loff_t pos;
 
-		n = kfifo_out_spinlocked(&out->fifo, buf, sizeof(buf), &out->lock);
+		n = kfifo_out_spinlocked(&out->fifo, buf, sizeof(buf),
+					 &out->lock);
 		if (!n)
 			break;
 		/* As write(2) would, without its f_pos lock. */
@@ -125,7 +128,8 @@ static void klet_out_free(struct klet_out *out)
 		kfifo_free(&out->fifo);
 }
 
-static long klet_set_out(struct klet_inst *inst, struct klet_out *out, s32 __user *uarg)
+static long klet_set_out(struct klet_inst *inst, struct klet_out *out,
+			 s32 __user *uarg)
 {
 	struct file *file;
 	s32 fd;
@@ -151,7 +155,7 @@ static long klet_set_out(struct klet_inst *inst, struct klet_out *out, s32 __use
 		struct file *old = out->file;
 
 		WRITE_ONCE(out->file, file);
-		file = old;	/* a second KLET_SET_* replaces the first */
+		file = old; /* a second KLET_SET_* replaces the first */
 	}
 	mutex_unlock(&inst->mutex);
 	if (file)
@@ -208,7 +212,8 @@ long klet_sandbox_create(struct klet_create __user *uarg)
 	if (!cmdline || !inst)
 		goto fail;
 	err = -EFAULT;
-	if (copy_from_user(cmdline, u64_to_user_ptr(cr.cmdline), cr.cmdline_len))
+	if (copy_from_user(cmdline, u64_to_user_ptr(cr.cmdline),
+			   cr.cmdline_len))
 		goto fail;
 	cmdline[cr.cmdline_len] = '\0';
 
@@ -228,7 +233,8 @@ long klet_sandbox_create(struct klet_create __user *uarg)
 	inst->memory_initial = initial;
 	inst->memory_max = max;
 	inst->max_tasks = cr.max_tasks;
-	inst->kstack_max = min_t(u64, cr.max_tasks, UINT_MAX - KLET_MAX_VCPUS) + cr.nr_vcpus;
+	inst->kstack_max = min_t(u64, cr.max_tasks, UINT_MAX - KLET_MAX_VCPUS) +
+			   cr.nr_vcpus;
 	inst->cmdline = cmdline;
 	cmdline = NULL;
 	inst->cgrp = cgrp;
@@ -277,8 +283,8 @@ long klet_sandbox_create(struct klet_create __user *uarg)
 		return fd;
 	}
 	pr_info("kernelet: sandbox %d created: kind %u \"%s\", %u vcpu(s), memory %llu KiB (max %llu KiB), max_tasks %llu, cmdline \"%s\"\n",
-		inst->slot, cr.kind, kind->name, inst->nr_vcpus, initial >> 10, max >> 10,
-		inst->max_tasks, inst->cmdline);
+		inst->slot, cr.kind, kind->name, inst->nr_vcpus, initial >> 10,
+		max >> 10, inst->max_tasks, inst->cmdline);
 	return fd;
 
 fail:
@@ -310,7 +316,8 @@ fail:
  * descriptor on the read-write file would let its holder read and write the
  * inode whatever its mode says.
  */
-static struct file *klet_exec_file_make(struct klet_inst *inst, unsigned int vcpu)
+static struct file *klet_exec_file_make(struct klet_inst *inst,
+					unsigned int vcpu)
 {
 	struct klet_exec_head head = { .slot = inst->slot, .vcpu = vcpu };
 	struct inode *inode;
@@ -389,7 +396,8 @@ out:
  * same bytes elsewhere is not one; nor is the file of a sandbox destroyed
  * since. Returns the instance with a reference, or NULL.
  */
-struct klet_inst *klet_exec_lookup(struct linux_binprm *bprm, unsigned int *vcpu)
+struct klet_inst *klet_exec_lookup(struct linux_binprm *bprm,
+				   unsigned int *vcpu)
 {
 	const struct klet_exec_head *head = (const void *)bprm->buf;
 	struct klet_inst *inst = NULL;
@@ -401,7 +409,8 @@ struct klet_inst *klet_exec_lookup(struct linux_binprm *bprm, unsigned int *vcpu
 	inst = klet_sandboxes[head->slot];
 	if (inst && head->vcpu < inst->nr_vcpus) {
 		exec_file = READ_ONCE(inst->vslot[head->vcpu].exec_file);
-		if (exec_file && file_inode(exec_file) == file_inode(bprm->file)) {
+		if (exec_file &&
+		    file_inode(exec_file) == file_inode(bprm->file)) {
 			klet_inst_get(inst);
 			*vcpu = head->vcpu;
 		} else {
@@ -468,7 +477,8 @@ int klet_sandbox_start(struct klet_inst *inst)
 	err = klet_image_start(inst);
 	if (err)
 		return err;
-	pages = alloc_pages(GFP_KERNEL_ACCOUNT | __GFP_ZERO | __GFP_NOWARN, order);
+	pages = alloc_pages(GFP_KERNEL_ACCOUNT | __GFP_ZERO | __GFP_NOWARN,
+			    order);
 	if (!pages)
 		return -ENOMEM;
 	inst->grant_pages = pages;
@@ -490,8 +500,8 @@ int klet_sandbox_start(struct klet_inst *inst)
 	if (err)
 		return err;
 	pr_info("kernelet: sandbox %d started: kind \"%s\" loaded as its instance (%zu bytes of private data), grant %llu KiB at %#llx, charged to its control group\n",
-		inst->slot, kind->name, kind->data_size, inst->boot.grant_len >> 10,
-		inst->boot.grant_paddr);
+		inst->slot, kind->name, kind->data_size,
+		inst->boot.grant_len >> 10, inst->boot.grant_paddr);
 	return 0;
 }
 
@@ -575,7 +585,8 @@ void klet_sandbox_exited(struct klet_inst *inst)
 			inst->slot, inst->exit.code);
 	else
 		pr_info("kernelet: sandbox %d exited: killed, reason %#x (%s)\n",
-			inst->slot, inst->exit.reason, klet_reason_name(inst->exit.reason));
+			inst->slot, inst->exit.reason,
+			klet_reason_name(inst->exit.reason));
 
 	spin_lock(&inst->lock);
 	WRITE_ONCE(inst->exited, true);
@@ -596,7 +607,8 @@ static void klet_fold_counters(struct klet_inst *inst)
 {
 	struct klet_totals *t = &klet_totals;
 	atomic_t *from = (atomic_t *)&inst->n, *to = (atomic_t *)&t->n;
-	atomic64_t *mfrom = (atomic64_t *)inst->mem_stats, *mto = (atomic64_t *)&t->mem;
+	atomic64_t *mfrom = (atomic64_t *)inst->mem_stats,
+		   *mto = (atomic64_t *)&t->mem;
 	unsigned int i, f;
 
 	for (i = 0; i < sizeof(inst->n) / sizeof(atomic_t); i++)
@@ -604,11 +616,17 @@ static void klet_fold_counters(struct klet_inst *inst)
 	if (mfrom)
 		for (i = 0; i < sizeof(t->mem) / sizeof(atomic64_t); i++)
 			atomic64_add(atomic64_read(&mfrom[i]), &mto[i]);
-	if (atomic_read(&inst->longest_defer_us) > atomic_read(&t->longest_defer_us))
-		atomic_set(&t->longest_defer_us, atomic_read(&inst->longest_defer_us));
-	if (atomic_read(&inst->longest_tick_gap_us) > atomic_read(&t->longest_tick_gap_us))
-		atomic_set(&t->longest_tick_gap_us, atomic_read(&inst->longest_tick_gap_us));
-	for (f = 0; f < min(atomic_read(&inst->forced_recorded), KLET_FORCED_RECORDS); f++) {
+	if (atomic_read(&inst->longest_defer_us) >
+	    atomic_read(&t->longest_defer_us))
+		atomic_set(&t->longest_defer_us,
+			   atomic_read(&inst->longest_defer_us));
+	if (atomic_read(&inst->longest_tick_gap_us) >
+	    atomic_read(&t->longest_tick_gap_us))
+		atomic_set(&t->longest_tick_gap_us,
+			   atomic_read(&inst->longest_tick_gap_us));
+	for (f = 0;
+	     f < min(atomic_read(&inst->forced_recorded), KLET_FORCED_RECORDS);
+	     f++) {
 		int j = atomic_inc_return(&t->forced_recorded) - 1;
 
 		if (j < KLET_FORCED_RECORDS)
@@ -655,7 +673,7 @@ static long klet_sandbox_destroy(struct klet_inst *inst)
 	inst->mem_stats = NULL;
 	cgroup_put(inst->cgrp);
 	inst->cgrp = NULL;
-	if (inst->owner) {	/* klet_spaces_destroy() put it, if the sandbox ever started */
+	if (inst->owner) { /* klet_spaces_destroy() put it, if the sandbox ever started */
 		put_task_struct(inst->owner);
 		inst->owner = NULL;
 	}
@@ -673,7 +691,8 @@ out:
 
 static void klet_destroy_work(struct work_struct *work)
 {
-	struct klet_inst *inst = container_of(work, struct klet_inst, destroy_work);
+	struct klet_inst *inst =
+		container_of(work, struct klet_inst, destroy_work);
 
 	klet_sandbox_destroy(inst);
 	klet_inst_put(inst);
@@ -696,7 +715,8 @@ static u32 klet_sandbox_state(struct klet_inst *inst)
 	return KLET_STATE_CREATED;
 }
 
-static long klet_get_stats(struct klet_inst *inst, struct klet_stats __user *uarg)
+static long klet_get_stats(struct klet_inst *inst,
+			   struct klet_stats __user *uarg)
 {
 	struct klet_stats st;
 	struct klet_vcpu_stat __user *rows;
@@ -707,7 +727,7 @@ static long klet_get_stats(struct klet_inst *inst, struct klet_stats __user *uar
 	rows = u64_to_user_ptr(st.vcpus);
 	n = min(st.capacity, inst->nr_vcpus);
 	for (i = 0; i < n; i++) {
-		struct klet_vcpu_stat row = { };
+		struct klet_vcpu_stat row = {};
 		struct klet_carrier *c;
 
 		spin_lock(&inst->lock);
@@ -719,7 +739,8 @@ static long klet_get_stats(struct klet_inst *inst, struct klet_stats __user *uar
 		if (c && c->task) {
 			row.run_ns = READ_ONCE(c->task->se.sum_exec_runtime);
 #ifdef CONFIG_SCHED_INFO
-			row.stolen_ns = READ_ONCE(c->task->sched_info.run_delay);
+			row.stolen_ns =
+				READ_ONCE(c->task->sched_info.run_delay);
 #endif
 		}
 		spin_unlock(&inst->lock);
@@ -733,7 +754,8 @@ static long klet_get_stats(struct klet_inst *inst, struct klet_stats __user *uar
 		st.exit = inst->exit;
 	spin_unlock(&inst->lock);
 	st.nr_vcpus = inst->nr_vcpus;
-	st.memory_granted = inst->grant_pages ? PAGE_SIZE << inst->grant_order : 0;
+	st.memory_granted = inst->grant_pages ? PAGE_SIZE << inst->grant_order :
+						0;
 	st.service_calls = atomic64_read(&inst->service_calls);
 	st.virqs_raised = atomic_read(&inst->n.virqs);
 	st.log_dropped = atomic64_read(&inst->log_dropped);
@@ -743,7 +765,8 @@ static long klet_get_stats(struct klet_inst *inst, struct klet_stats __user *uar
 	return 0;
 }
 
-static long klet_sandbox_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+static long klet_sandbox_ioctl(struct file *file, unsigned int cmd,
+			       unsigned long arg)
 {
 	struct klet_inst *inst = file->private_data;
 	void __user *uarg = (void __user *)arg;
@@ -752,7 +775,7 @@ static long klet_sandbox_ioctl(struct file *file, unsigned int cmd, unsigned lon
 	case KLET_GET_VCPU_EXEC_FD:
 		return klet_get_vcpu_exec_fd(inst, uarg);
 	case KLET_ATTACH_DEVICE:
-		return -EOPNOTSUPP;	// Device attachment is unsupported.
+		return -EOPNOTSUPP; // Device attachment is unsupported.
 	case KLET_SET_CONSOLE:
 		return klet_set_out(inst, &inst->console, uarg);
 	case KLET_SET_LOG:
@@ -776,7 +799,7 @@ static long klet_sandbox_ioctl(struct file *file, unsigned int cmd, unsigned lon
 
 // Wait for exit and return the immutable record without consuming it.
 static ssize_t klet_sandbox_read(struct file *file, char __user *buf,
-				size_t count, loff_t *pos)
+				 size_t count, loff_t *pos)
 {
 	struct klet_inst *inst = file->private_data;
 	struct klet_exit exit;
@@ -799,7 +822,8 @@ static ssize_t klet_sandbox_read(struct file *file, char __user *buf,
 	return sizeof(exit);
 }
 
-static __poll_t klet_sandbox_poll(struct file *file, struct poll_table_struct *pt)
+static __poll_t klet_sandbox_poll(struct file *file,
+				  struct poll_table_struct *pt)
 {
 	struct klet_inst *inst = file->private_data;
 

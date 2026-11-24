@@ -28,21 +28,21 @@
 
 extern crate alloc;
 
-use align_ext::AlignExt;
+use alloc::{sync::Arc, vec::Vec};
 use core::str;
 
-use alloc::sync::Arc;
-use alloc::vec::Vec;
-
-use ostd::arch::cpu::context::{CpuException, UserContext};
-use ostd::mm::{
-    CachePolicy, FallibleVmRead, FrameAllocOptions, PageFlags, PageProperty, Vaddr, VmIo, VmSpace,
-    VmWriter, PAGE_SIZE,
+use align_ext::AlignExt;
+use ostd::{
+    arch::cpu::context::{CpuException, UserContext},
+    mm::{
+        CachePolicy, FallibleVmRead, FrameAllocOptions, PageFlags, PageProperty, Vaddr, VmIo,
+        VmSpace, VmWriter, PAGE_SIZE,
+    },
+    power::{poweroff, ExitCode},
+    prelude::*,
+    task::{disable_preempt, Task, TaskOptions},
+    user::{DummyUserHooks, ReturnReason, UserMode},
 };
-use ostd::power::{poweroff, ExitCode};
-use ostd::prelude::*;
-use ostd::task::{disable_preempt, Task, TaskOptions};
-use ostd::user::{DummyUserHooks, ReturnReason, UserMode};
 
 /// Where the program image is mapped, and where its entry point lands.
 const MAP_ADDR: Vaddr = 0x0040_0000;
@@ -81,7 +81,8 @@ fn create_vm_space(program: &[u8]) -> VmSpace {
 
     println!(
         "probe: mapped {} text page(s) at {:#x}; no data page and no stack",
-        nbytes / PAGE_SIZE, MAP_ADDR
+        nbytes / PAGE_SIZE,
+        MAP_ADDR
     );
     vm_space
 }
@@ -177,11 +178,8 @@ fn handle_syscall(user_context: &mut UserContext, vm_space: &VmSpace) {
 
     match user_context.rax() {
         SYS_WRITE => {
-            let (_, buf_addr, buf_len) = (
-                user_context.rdi(),
-                user_context.rsi(),
-                user_context.rdx(),
-            );
+            let (_, buf_addr, buf_len) =
+                (user_context.rdi(), user_context.rsi(), user_context.rdx());
             let buf = {
                 // A tenant names the length, so the buffer may be more than
                 // the heap can give: refuse the call then, rather than let the

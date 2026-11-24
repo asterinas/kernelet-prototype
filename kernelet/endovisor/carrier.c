@@ -133,14 +133,14 @@ static void klet_coro_prepare(struct klet_carrier *c)
 {
 	u64 *sp = (u64 *)((char *)c->stack + KLET_STACK_SIZE);
 
-	*--sp = 0;				/* fake return address */
-	*--sp = (u64)klet_coro_trampoline;	/* klet_switch's `ret` target */
-	*--sp = 0;				/* rbp */
-	*--sp = 0;				/* rbx */
-	*--sp = (u64)c;				/* r12: the carrier */
-	*--sp = 0;				/* r13 */
-	*--sp = 0;				/* r14 */
-	*--sp = 0;				/* r15 */
+	*--sp = 0; /* fake return address */
+	*--sp = (u64)klet_coro_trampoline; /* klet_switch's `ret` target */
+	*--sp = 0; /* rbp */
+	*--sp = 0; /* rbx */
+	*--sp = (u64)c; /* r12: the carrier */
+	*--sp = 0; /* r13 */
+	*--sp = 0; /* r14 */
+	*--sp = 0; /* r15 */
 	c->coro_sp = sp;
 	c->state = KLET_NEW;
 }
@@ -197,7 +197,7 @@ struct klet_carrier *klet_carrier_new(struct klet_inst *inst, int vcpu)
 		kfree(c);
 		return NULL;
 	}
-	klet_inst_get(inst);	/* the record's, dropped when it is freed */
+	klet_inst_get(inst); /* the record's, dropped when it is freed */
 	list_add_tail(&c->link, &inst->carriers);
 	atomic_inc(&inst->nr_carriers);
 	spin_unlock(&inst->lock);
@@ -364,7 +364,9 @@ void klet_carrier_lifeline_closed(struct klet_carrier *c)
 
 	pr_info("kernelet: sandbox %d: vcpu %d carrier (pid %d) lifeline closed%s\n",
 		inst->slot, c->vcpu, c->task ? c->task->pid : 0,
-		last ? ", the last one" : live ? ", the sandbox is dying" : "");
+		last ? ", the last one" :
+		live ? ", the sandbox is dying" :
+		       "");
 
 	/*
 	 * A carrier's death while the sandbox is live is the sandbox's death:
@@ -429,7 +431,9 @@ void klet_carrier_die(struct klet_carrier *c)
 {
 	pr_info("kernelet: sandbox %d: vcpu %d carrier (pid %d) dying%s%s\n",
 		c->inst->slot, c->vcpu, current->pid,
-		c->killed_in ? ", killed in " : c->evicted ? " (evicted)" : "",
+		c->killed_in ? ", killed in " :
+		c->evicted   ? " (evicted)" :
+			       "",
 		c->killed_in ? c->killed_in : "");
 	klet_detach(c);
 	if (!fatal_signal_pending(current))
@@ -464,7 +468,8 @@ u64 klet_kstack_alloc(struct klet_inst *inst)
 	void *base;
 
 	spin_lock(&inst->lock);
-	list_for_each_entry(k, &inst->kstack_all, link) {
+	list_for_each_entry(k, &inst->kstack_all, link)
+	{
 		if (!k->busy) {
 			k->busy = true;
 			spin_unlock(&inst->lock);
@@ -514,7 +519,8 @@ void klet_kstack_put(struct klet_inst *inst, u64 base)
 	if (!base)
 		return;
 	spin_lock(&inst->lock);
-	list_for_each_entry(k, &inst->kstack_all, link) {
+	list_for_each_entry(k, &inst->kstack_all, link)
+	{
 		if ((u64)(unsigned long)k->base == base) {
 			k->busy = false;
 			spin_unlock(&inst->lock);
@@ -531,7 +537,8 @@ void klet_kstack_put(struct klet_inst *inst, u64 base)
  * many stacks it freed, and in *busy how many of those the kernelet had not
  * given back. The pool is left empty and usable.
  */
-unsigned int klet_kstack_pool_destroy(struct klet_inst *inst, unsigned int *busy)
+unsigned int klet_kstack_pool_destroy(struct klet_inst *inst,
+				      unsigned int *busy)
 {
 	struct klet_kstack *k, *tmp;
 	unsigned int n = 0, in_use = 0;
@@ -542,7 +549,8 @@ unsigned int klet_kstack_pool_destroy(struct klet_inst *inst, unsigned int *busy
 	inst->kstack_made = 0;
 	spin_unlock(&inst->lock);
 
-	list_for_each_entry_safe(k, tmp, &dead, link) {
+	list_for_each_entry_safe(k, tmp, &dead, link)
+	{
 		list_del(&k->link);
 		if (k->busy)
 			in_use++;
@@ -633,16 +641,18 @@ static void klet_enter(struct klet_carrier *c, u64 run_ret)
 	 * kernelet's.
 	 */
 	if (c->excess != 0)
-		pr_warn_once("kernelet: entering the kernelet with %d borrowed from Linux's preempt count\n",
-			     c->excess);
+		pr_warn_once(
+			"kernelet: entering the kernelet with %d borrowed from Linux's preempt count\n",
+			c->excess);
 	klet_mirror_in(c);
 	klet_watch_arm(c);
 	klet_switch(&c->linux_sp, c->coro_sp);
 
 	/* Back on the Linux stack, where a warning may be printed. */
 	if (unlikely(c->mirror_fault_pc >= 0)) {
-		pr_warn_once("kernelet: Linux's preempt count was %d, expected %d or %d; re-normalised\n",
-			     c->mirror_fault_pc, c->pc_base, c->pc_base + 1);
+		pr_warn_once(
+			"kernelet: Linux's preempt count was %d, expected %d or %d; re-normalised\n",
+			c->mirror_fault_pc, c->pc_base, c->pc_base + 1);
 		c->mirror_fault_pc = -1;
 	}
 }
@@ -719,9 +729,9 @@ void klet_evict_leave(void)
  * dropped; IF is forced on so that the carrier stays interruptible in user mode,
  * and the always-one bit 1 is set.
  */
-#define KLET_RFLAGS_USER                                                       \
-	(X86_EFLAGS_CF | X86_EFLAGS_PF | X86_EFLAGS_AF | X86_EFLAGS_ZF |        \
-	 X86_EFLAGS_SF | X86_EFLAGS_TF | X86_EFLAGS_DF | X86_EFLAGS_OF |        \
+#define KLET_RFLAGS_USER                                                 \
+	(X86_EFLAGS_CF | X86_EFLAGS_PF | X86_EFLAGS_AF | X86_EFLAGS_ZF | \
+	 X86_EFLAGS_SF | X86_EFLAGS_TF | X86_EFLAGS_DF | X86_EFLAGS_OF | \
 	 X86_EFLAGS_ID)
 
 static void klet_ctx_to_regs(struct klet_carrier *c, struct pt_regs *regs)
@@ -961,7 +971,8 @@ static bool klet_drain_signals(struct klet_carrier *c)
 		 */
 		reignored = false;
 		if (!sig_kernel_only(signr) && !klet_sig_immutable(signr) &&
-		    current->sighand->action[signr - 1].sa.sa_handler != SIG_IGN) {
+		    current->sighand->action[signr - 1].sa.sa_handler !=
+			    SIG_IGN) {
 			kernel_sigaction(signr, SIG_IGN);
 			reignored = true;
 		}
@@ -1012,17 +1023,18 @@ static bool klet_vcpu_await(struct klet_carrier *c)
 	if (c->vcpu == 0) {
 		wait_event_state(inst->arrive_wq,
 				 READ_ONCE(inst->arrived) == inst->nr_vcpus ||
-				 READ_ONCE(inst->dying) || fatal_signal_pending(current),
+					 READ_ONCE(inst->dying) ||
+					 fatal_signal_pending(current),
 				 (TASK_KILLABLE | TASK_NOLOAD));
-		if (READ_ONCE(inst->arrived) != inst->nr_vcpus || READ_ONCE(inst->dying) ||
-		    fatal_signal_pending(current))
+		if (READ_ONCE(inst->arrived) != inst->nr_vcpus ||
+		    READ_ONCE(inst->dying) || fatal_signal_pending(current))
 			return false;
 		pr_info("kernelet: sandbox %d: every virtual CPU's carrier has arrived (%u); booting the kernelet\n",
 			inst->slot, inst->nr_vcpus);
 	} else {
 		wait_event_state(c->idle_wq,
 				 c->boot_requested || READ_ONCE(inst->dying) ||
-				 fatal_signal_pending(current),
+					 fatal_signal_pending(current),
 				 (TASK_KILLABLE | TASK_NOLOAD));
 		if (!c->boot_requested || READ_ONCE(inst->dying))
 			return false;
@@ -1041,7 +1053,8 @@ void klet_kill_carriers(struct klet_inst *inst)
 	klet_spaces_wake_all(inst);
 
 	spin_lock(&inst->lock);
-	list_for_each_entry(c, &inst->carriers, link) {
+	list_for_each_entry(c, &inst->carriers, link)
+	{
 		if (c->task)
 			send_sig(SIGKILL, c->task, 1);
 		wake_up_all(&c->idle_wq);
@@ -1145,8 +1158,7 @@ static bool klet_on_syscall(struct pt_regs *regs)
 		}
 		klet_ctx_to_regs(c, regs);
 		c->user_live = true;
-	}
-	else
+	} else
 		klet_carrier_die(c);
 
 	return true;
@@ -1159,7 +1171,8 @@ static void klet_on_resume(struct pt_regs *regs)
 	for (;;) {
 		int fatal;
 
-		if (c->state == KLET_DEAD || c->inst->stopped || c->inst->dying) {
+		if (c->state == KLET_DEAD || c->inst->stopped ||
+		    c->inst->dying) {
 			klet_carrier_die(c);
 			return;
 		}
@@ -1300,8 +1313,8 @@ static void klet_do_out_write(struct klet_inst *inst, struct klet_out *out,
 	if (inst->stub_cycles && !inst->stub_reported) {
 		inst->stub_reported = true;
 		pr_info("kernelet: service stub: %llu cycles through the stack switch, %llu for the service body alone (least of %d rounds of %d, rdtsc, interrupts off)\n",
-			inst->stub_cycles, inst->body_cycles, KLET_MEASURE_ROUNDS,
-			KLET_MEASURE_N);
+			inst->stub_cycles, inst->body_cycles,
+			KLET_MEASURE_ROUNDS, KLET_MEASURE_N);
 	}
 	if (READ_ONCE(out->file))
 		klet_out_write(inst, out, ptr, len);
@@ -1341,8 +1354,8 @@ static void klet_do_out_write(struct klet_inst *inst, struct klet_out *out,
  * answer the kernelet gets, as NULL, not a fault of the host to warn about.
  */
 #define KLET_HEAP_FIRST 256
-#define KLET_HEAP_MAX	(1u << 24)
-#define KLET_HEAP_GFP	(GFP_KERNEL_ACCOUNT | __GFP_NOWARN)
+#define KLET_HEAP_MAX (1u << 24)
+#define KLET_HEAP_GFP (GFP_KERNEL_ACCOUNT | __GFP_NOWARN)
 
 void klet_heap_init(struct klet_inst *inst)
 {
@@ -1485,8 +1498,9 @@ static void klet_do_mem_free(struct klet_inst *inst, void *ptr, u64 align)
 
 	if (!base) {
 		atomic64_inc(&inst->heap_bad_frees);
-		pr_warn_ratelimited("kernelet: mem_free of %px, which mem_alloc did not hand out\n",
-				    ptr);
+		pr_warn_ratelimited(
+			"kernelet: mem_free of %px, which mem_alloc did not hand out\n",
+			ptr);
 		return;
 	}
 	kfree(base);
@@ -1568,7 +1582,8 @@ static void klet_do_vcpu_kick(struct klet_inst *inst, u64 id)
 		return;
 
 	/* Already asked: nothing to do, and no interrupt to send. */
-	if (atomic_fetch_or(KLET_VIRQ_KICK, &target->vrec.pending) & KLET_VIRQ_KICK) {
+	if (atomic_fetch_or(KLET_VIRQ_KICK, &target->vrec.pending) &
+	    KLET_VIRQ_KICK) {
 		klet_carrier_put(target);
 		return;
 	}
@@ -1688,12 +1703,12 @@ static void klet_do_yield(struct klet_carrier *c)
  */
 
 /* The header of the standard (non-compacted) XSAVE area. */
-#define KLET_XSAVE_HDR_OFF	512
-#define KLET_XSTATE_BV_OFF	(KLET_XSAVE_HDR_OFF + 0)
-#define KLET_XCOMP_BV_OFF	(KLET_XSAVE_HDR_OFF + 8)
-#define KLET_XSAVE_RSVD_OFF	(KLET_XSAVE_HDR_OFF + 16)
-#define KLET_XSAVE_RSVD_LEN	48
-#define KLET_MXCSR_OFF		24
+#define KLET_XSAVE_HDR_OFF 512
+#define KLET_XSTATE_BV_OFF (KLET_XSAVE_HDR_OFF + 0)
+#define KLET_XCOMP_BV_OFF (KLET_XSAVE_HDR_OFF + 8)
+#define KLET_XSAVE_RSVD_OFF (KLET_XSAVE_HDR_OFF + 16)
+#define KLET_XSAVE_RSVD_LEN 48
+#define KLET_MXCSR_OFF 24
 
 /*
  * The features a tenant may restore: the legacy x87 and SSE state, AVX, and
@@ -1705,8 +1720,8 @@ static void klet_do_yield(struct klet_carrier *c)
  *    XFD bit is armed raises #NM in kernel mode;
  *  - every supervisor state.
  */
-#define KLET_XFEATURE_MASK_USER                                                \
-	(BIT_ULL(0) | BIT_ULL(1) | BIT_ULL(2) | BIT_ULL(5) | BIT_ULL(6) |      \
+#define KLET_XFEATURE_MASK_USER                                           \
+	(BIT_ULL(0) | BIT_ULL(1) | BIT_ULL(2) | BIT_ULL(5) | BIT_ULL(6) | \
 	 BIT_ULL(7))
 
 /* The MXCSR bits that exist. Anything else set makes XRSTOR raise #GP. */
@@ -1757,8 +1772,9 @@ static bool klet_fpu_validate(struct klet_carrier *c, void *stage, u64 len)
 	return true;
 bad:
 	atomic_inc(&c->inst->n.fpu_rejects);
-	pr_warn_once("kernelet: refusing an fpu_load: xstate_bv %#llx (allowed %#llx), xcomp_bv %#llx\n",
-		     xstate_bv, allowed, xcomp_bv);
+	pr_warn_once(
+		"kernelet: refusing an fpu_load: xstate_bv %#llx (allowed %#llx), xcomp_bv %#llx\n",
+		xstate_bv, allowed, xcomp_bv);
 	return false;
 }
 
@@ -1808,7 +1824,8 @@ static void klet_do_fpu_load(struct klet_carrier *c, const void *area, u64 len)
 	if (!klet_fpu_validate(c, stage, len))
 		return;
 
-	mask = *(u64 *)((char *)stage + KLET_XSTATE_BV_OFF) & klet_allowed_features();
+	mask = *(u64 *)((char *)stage + KLET_XSTATE_BV_OFF) &
+	       klet_allowed_features();
 
 	fpregs_lock();
 	if (test_thread_flag(TIF_NEED_FPU_LOAD))
@@ -1822,16 +1839,14 @@ static void klet_do_fpu_load(struct klet_carrier *c, const void *area, u64 len)
 		 * did not foresee.
 		 */
 		asm volatile("1: xrstor64 %[s]\n"
-			     "2:\n"
-			     _ASM_EXTABLE(1b, 2b)
+			     "2:\n" _ASM_EXTABLE(1b, 2b)
 			     :
-			     : [s] "m"(*(const char *)stage),
-			       "a"((u32)mask), "d"((u32)(mask >> 32))
+			     : [s] "m"(*(const char *)stage), "a"((u32)mask),
+			       "d"((u32)(mask >> 32))
 			     : "memory");
 	else
 		asm volatile("1: fxrstor64 %[s]\n"
-			     "2:\n"
-			     _ASM_EXTABLE(1b, 2b)
+			     "2:\n" _ASM_EXTABLE(1b, 2b)
 			     :
 			     : [s] "m"(*(const char *)stage)
 			     : "memory");
@@ -1896,10 +1911,12 @@ void klet_svc_body(struct klet_svc_args *args)
 		}
 		break;
 	case KLET_SVC_LOG_WRITE:
-		klet_do_out_write(c->inst, &c->inst->log, (const char *)args->a0, args->a1);
+		klet_do_out_write(c->inst, &c->inst->log,
+				  (const char *)args->a0, args->a1);
 		break;
 	case KLET_SVC_CONSOLE_WRITE:
-		klet_do_out_write(c->inst, &c->inst->console, (const char *)args->a0, args->a1);
+		klet_do_out_write(c->inst, &c->inst->console,
+				  (const char *)args->a0, args->a1);
 		break;
 	case KLET_SVC_MEM_ALLOC:
 		args->ret = (u64)klet_do_mem_alloc(c->inst, args->a0, args->a1);
@@ -1925,8 +1942,9 @@ void klet_svc_body(struct klet_svc_args *args)
 	case KLET_SVC_VCPU_YIELD:
 		klet_do_yield(c);
 		/* Eviction still wins: tell the stub not to resume. */
-		args->ret = (c->inst->stopped || c->inst->dying ||
-			     c->evicted) ? 1 : 0;
+		args->ret = (c->inst->stopped || c->inst->dying || c->evicted) ?
+				    1 :
+				    0;
 		break;
 	case KLET_SVC_VCPU_ON_SPIN:
 		klet_do_on_spin(c);
@@ -1954,17 +1972,20 @@ void klet_svc_body(struct klet_svc_args *args)
 						(u32)args->a3);
 		break;
 	case KLET_SVC_VM_UNMAP:
-		args->ret = (u64)klet_do_vm_unmap(c, args->a0, args->a1, args->a2);
+		args->ret =
+			(u64)klet_do_vm_unmap(c, args->a0, args->a1, args->a2);
 		break;
 	case KLET_SVC_VM_PROTECT:
 		args->ret = (u64)klet_do_vm_protect(c, args->a0, args->a1,
 						    (u32)args->a2);
 		break;
 	case KLET_SVC_VM_FLUSH:
-		args->ret = (u64)klet_do_vm_flush(c, args->a0, args->a1, args->a2);
+		args->ret =
+			(u64)klet_do_vm_flush(c, args->a0, args->a1, args->a2);
 		break;
 	case KLET_SVC_VM_WAIT:
-		args->ret = (u64)klet_do_vm_wait(c, args->a0, (u32)args->a1, args->a2);
+		args->ret = (u64)klet_do_vm_wait(c, args->a0, (u32)args->a1,
+						 args->a2);
 		break;
 	case KLET_SVC_VM_WAKE:
 		args->ret = (u64)klet_do_vm_wake(c, args->a0, (u32)args->a1);
@@ -1994,8 +2015,9 @@ void klet_svc_body(struct klet_svc_args *args)
 static u64 klet_svc_enter5(u64 op, u64 a0, u64 a1, u64 a2, u64 a3, u64 a4)
 {
 	struct klet_carrier *c = klet_current_carrier();
-	struct klet_svc_args args = { .op = op, .a0 = a0, .a1 = a1, .a2 = a2,
-				      .a3 = a3, .a4 = a4 };
+	struct klet_svc_args args = {
+		.op = op, .a0 = a0, .a1 = a1, .a2 = a2, .a3 = a3, .a4 = a4
+	};
 
 	klet_run_on_linux_stack(c->linux_sp, &args);
 	/* A fatal signal: abandon the coroutine (klet_carrier_doom). */
@@ -2037,7 +2059,8 @@ static u64 klet_svc_enter(u64 op, u64 a0, u64 a1, u64 a2)
 static void klet_measure_switch(struct klet_carrier *c)
 {
 	struct klet_svc_args nop = { .op = KLET_SVC_NOP };
-	struct klet_svc_args loop = { .op = KLET_SVC_NOP, .a0 = KLET_MEASURE_N };
+	struct klet_svc_args loop = { .op = KLET_SVC_NOP,
+				      .a0 = KLET_MEASURE_N };
 	u64 viastub = ~0ULL, body = ~0ULL;
 	unsigned long flags;
 	int r, i;
@@ -2135,7 +2158,8 @@ static s64 klet_svc_vm_flush(u64 space, u64 va, u64 len)
 static s64 klet_svc_vm_wait(u64 space, u32 stripe, u64 expected)
 {
 	struct klet_carrier *c = klet_current_carrier();
-	s64 ret = (s64)klet_svc_enter(KLET_SVC_VM_WAIT, space, stripe, expected);
+	s64 ret =
+		(s64)klet_svc_enter(KLET_SVC_VM_WAIT, space, stripe, expected);
 
 	if (c->inst->stopped || c->inst->dying || c->evicted ||
 	    fatal_signal_pending(current)) {

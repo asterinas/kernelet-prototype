@@ -55,7 +55,9 @@ static unsigned long long progress(const struct instance *inst, int *ready)
 	data[length] = 0;
 	if (strstr(data, "FAIL") != NULL)
 		check(0, "kernel state remains private");
-	snprintf(marker, sizeof(marker), "PIE-CHECK id=%u ready fresh-data relocated-pointers", inst->id);
+	snprintf(marker, sizeof(marker),
+		 "PIE-CHECK id=%u ready fresh-data relocated-pointers",
+		 inst->id);
 	*ready = strstr(data, marker) != NULL;
 	snprintf(marker, sizeof(marker), "PIE-CHECK id=%u progress=", inst->id);
 	at = data;
@@ -67,7 +69,8 @@ static unsigned long long progress(const struct instance *inst, int *ready)
 	return latest;
 }
 
-static unsigned long long wait_progress(const struct instance *inst, unsigned long long previous)
+static unsigned long long wait_progress(const struct instance *inst,
+					unsigned long long previous)
 {
 	long long deadline = now_ms() + 5000;
 
@@ -79,7 +82,8 @@ static unsigned long long wait_progress(const struct instance *inst, unsigned lo
 		if (ready && value > previous)
 			return value;
 		if (poll(&pfd, 1, 0) != 0)
-			check(0, "instance remains alive while awaiting progress");
+			check(0,
+			      "instance remains alive while awaiting progress");
 		msleep(20);
 	}
 	check(0, "instance made fresh progress before timeout");
@@ -92,8 +96,11 @@ static struct instance start_instance(int sys_fd, int kind, unsigned int id)
 	struct sandbox_opts opt;
 	char command[32];
 	struct klet_create cr = {
-		.kind = kind, .nr_vcpus = 1,
-		.memory_initial = 4 << 20, .memory_max = 4 << 20, .max_tasks = 16,
+		.kind = kind,
+		.nr_vcpus = 1,
+		.memory_initial = 4 << 20,
+		.memory_max = 4 << 20,
+		.max_tasks = 16,
 		.cmdline = (__u64)(unsigned long)command,
 	};
 	unsigned int vcpu = 0;
@@ -104,8 +111,10 @@ static struct instance start_instance(int sys_fd, int kind, unsigned int id)
 	inst.fd = ioctl(sys_fd, KLET_CREATE, &cr);
 	check(inst.fd >= 0, "create another sandbox of the same kind");
 	snprintf(inst.console, sizeof(inst.console), "/pie-%u.console", id);
-	output = open(inst.console, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
-	check(output >= 0 && ioctl(inst.fd, KLET_SET_CONSOLE, &output) == 0, "attach instance console");
+	output = open(inst.console, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC,
+		      0600);
+	check(output >= 0 && ioctl(inst.fd, KLET_SET_CONSOLE, &output) == 0,
+	      "attach instance console");
 	close(output);
 	exec_fd = ioctl(inst.fd, KLET_GET_VCPU_EXEC_FD, &vcpu);
 	check(exec_fd >= 0, "obtain instance exec descriptor");
@@ -116,7 +125,9 @@ static struct instance start_instance(int sys_fd, int kind, unsigned int id)
 		start_carrier(exec_fd, 0, &opt);
 	close(exec_fd);
 	wait_progress(&inst, 0);
-	sandbox_say("instance %u booted with fresh state and working relocated pointers", id);
+	sandbox_say(
+		"instance %u booted with fresh state and working relocated pointers",
+		id);
 	return inst;
 }
 
@@ -128,14 +139,17 @@ static void stop_instance(struct instance *inst)
 	int status = 0, ready = 0;
 
 	check(ioctl(inst->fd, KLET_KILL, &reason) == 0, "kill one instance");
-	check(poll(&pfd, 1, 5000) == 1 && (pfd.revents & POLLIN), "killed instance exits before timeout");
+	check(poll(&pfd, 1, 5000) == 1 && (pfd.revents & POLLIN),
+	      "killed instance exits before timeout");
 	check(read(inst->fd, &ended, sizeof(ended)) == sizeof(ended) &&
-	      ended.how == KLET_END_KILLED && ended.reason == reason,
+		      ended.how == KLET_END_KILLED && ended.reason == reason,
 	      "killed instance reports its own reason");
-	check(waitpid(inst->pid, &status, 0) == inst->pid && WIFSIGNALED(status) && WTERMSIG(status) == SIGKILL,
+	check(waitpid(inst->pid, &status, 0) == inst->pid &&
+		      WIFSIGNALED(status) && WTERMSIG(status) == SIGKILL,
 	      "reap killed carrier");
 	progress(inst, &ready);
-	check(close(inst->fd) == 0, "close the last descriptor to destroy killed instance");
+	check(close(inst->fd) == 0,
+	      "close the last descriptor to destroy killed instance");
 	sandbox_say("instance %u destroyed", inst->id);
 }
 
@@ -171,8 +185,10 @@ int main(int argc, char **argv)
 	check(ioctl(sys_fd, KLET_KIND_UNREGISTER, &(__u32){ kind }) == 0,
 	      "unregister kind after every instance is destroyed");
 	close(sys_fd);
-	check(module_references("endovisor") == 0, "endovisor has no remaining references");
+	check(module_references("endovisor") == 0,
+	      "endovisor has no remaining references");
 	sandbox_say("no carrier left (module references: 0)");
-	sandbox_say("PASS concurrent same-kind instances, private state, relocated pointers, survivor and restart");
+	sandbox_say(
+		"PASS concurrent same-kind instances, private state, relocated pointers, survivor and restart");
 	return 0;
 }

@@ -29,7 +29,11 @@ pub(crate) fn last_mask() -> Option<&'static core::panic::Location<'static>> {
     let v = crate::cpu::CpuId::current_racy().as_usize();
     let p = LAST_MASK[v].load(core::sync::atomic::Ordering::Relaxed);
     // SAFETY: only `&'static Location`s are stored.
-    if p.is_null() { None } else { Some(unsafe { &*p }) }
+    if p.is_null() {
+        None
+    } else {
+        Some(unsafe { &*p })
+    }
 }
 
 /// A guard for disabled virtual interrupts.

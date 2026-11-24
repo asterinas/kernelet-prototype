@@ -7,11 +7,16 @@
 #![no_std]
 #![deny(unsafe_code)]
 
-use core::hint::{black_box, spin_loop};
-use core::sync::atomic::{AtomicU64, Ordering};
-use ostd::boot::boot_info;
-use ostd::power::{poweroff, ExitCode};
-use ostd::prelude::*;
+use core::{
+    hint::{black_box, spin_loop},
+    sync::atomic::{AtomicU64, Ordering},
+};
+
+use ostd::{
+    boot::boot_info,
+    power::{poweroff, ExitCode},
+    prelude::*,
+};
 
 const INITIAL: u64 = 0x1357_2468_9abc_def0;
 static INITIALIZED: AtomicU64 = AtomicU64::new(INITIAL);
@@ -43,7 +48,10 @@ pub fn main() {
     let refs = black_box(&REFERENCES);
     assert!(core::ptr::eq(refs.initialized, &INITIALIZED));
     assert!(core::ptr::eq(refs.zeroed, &ZEROED));
-    assert!(core::ptr::fn_addr_eq(refs.transform, transform as fn(u64) -> u64));
+    assert!(core::ptr::fn_addr_eq(
+        refs.transform,
+        transform as fn(u64) -> u64
+    ));
     assert_eq!(refs.initialized.load(Ordering::SeqCst), INITIAL);
     assert_eq!(refs.zeroed.load(Ordering::SeqCst), 0);
     assert_eq!((refs.transform)(id), transform(id));

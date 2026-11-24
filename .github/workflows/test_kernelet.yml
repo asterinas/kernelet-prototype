@@ -1,0 +1,22 @@
+name: test_kernelet
+
+on: [pull_request, push]
+
+permissions:
+  contents: read
+
+jobs:
+  test_kernelet:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Make space for the development image and guest kernel
+        run: sudo rm -rf /usr/local/lib/android /usr/share/dotnet
+      - name: Boot and test the teaching kernels
+        run: |
+          docker run --rm --network none --device /dev/kvm \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            "asterinas/kernelet:$(cat DOCKER_IMAGE_VERSION)" make test

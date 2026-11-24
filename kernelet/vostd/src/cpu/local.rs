@@ -105,7 +105,10 @@ macro_rules! cpu_local {
     };
 }
 
-const _: () = assert!(MAX_CPUS == 8, "the cpu_local! macro writes out 8 initialisers");
+const _: () = assert!(
+    MAX_CPUS == 8,
+    "the cpu_local! macro writes out 8 initialisers"
+);
 
 /// Declares CPU-local words.
 #[macro_export]

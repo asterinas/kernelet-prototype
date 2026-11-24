@@ -1,0 +1,21 @@
+name: check_kernelet_book
+
+on:
+  pull_request:
+    paths:
+      - kernelet/book/**
+      - .github/actions/setup-kernelet-book/**
+      - .github/workflows/check_kernelet_book.yml
+
+permissions:
+  contents: read
+
+jobs:
+  check_kernelet_book:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-kernelet-book
+      - run: make -C kernelet/book check build

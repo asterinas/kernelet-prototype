@@ -171,7 +171,9 @@ static void step(char *line)
 		}
 	} else if (strcmp(argv[0], "sleep") == 0 && argc == 2) {
 		int ms = atoi(argv[1]);
-		struct timespec ts = { .tv_sec = ms / 1000, .tv_nsec = (long)(ms % 1000) * 1000000L };
+		struct timespec ts = { .tv_sec = ms / 1000,
+				       .tv_nsec =
+					       (long)(ms % 1000) * 1000000L };
 
 		nanosleep(&ts, NULL);
 	} else if (strcmp(argv[0], "pin") == 0 && argc == 2) {

@@ -23,18 +23,19 @@
 
 extern crate alloc;
 
-use align_ext::AlignExt;
-
 use alloc::sync::Arc;
 
-use ostd::arch::cpu::context::UserContext;
-use ostd::mm::{
-    CachePolicy, FrameAllocOptions, PageFlags, PageProperty, Vaddr, VmIo, VmSpace, PAGE_SIZE,
+use align_ext::AlignExt;
+use ostd::{
+    arch::cpu::context::UserContext,
+    mm::{
+        CachePolicy, FrameAllocOptions, PageFlags, PageProperty, Vaddr, VmIo, VmSpace, PAGE_SIZE,
+    },
+    power::{poweroff, ExitCode},
+    prelude::*,
+    task::{disable_preempt, Task, TaskOptions},
+    user::{DummyUserHooks, ReturnReason, UserMode},
 };
-use ostd::power::{poweroff, ExitCode};
-use ostd::prelude::*;
-use ostd::task::{disable_preempt, Task, TaskOptions};
-use ostd::user::{DummyUserHooks, ReturnReason, UserMode};
 
 const MAP_ADDR: Vaddr = 0x0040_0000;
 const ENTRY_POINT: Vaddr = 0x0040_1000;

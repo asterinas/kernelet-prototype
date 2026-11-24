@@ -32,6 +32,8 @@ make bench    # Run the scheduling and memory benchmarks
 
 The first boot downloads Linux 6.12, applies the patches in `linux/patches/`, and builds the guest kernel. Build products and serial logs are in `.build/`.
 
+Run `make check-format clippy` from this directory to check the Rust and C sources with rustfmt, Clippy, and clang-format 18.
+
 ## Building the book
 
 Use mdBook 0.5.2 and mdbook-mermaid 0.17.0. Run `make check build` to check the source references and generate `book/build/index.html`, or `make serve` for a local preview. See the [book README](book/README.md) for publishing instructions.

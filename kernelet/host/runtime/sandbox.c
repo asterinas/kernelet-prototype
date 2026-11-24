@@ -87,17 +87,20 @@ static void die_child(const char *what)
 {
 	int err = errno;
 	char msg[256];
-	int n = snprintf(msg, sizeof(msg), "%s: carrier: %s: %s\n", sandbox_who, what,
-			 strerror(err));
+	int n = snprintf(msg, sizeof(msg), "%s: carrier: %s: %s\n", sandbox_who,
+			 what, strerror(err));
 
 	if (n > 0)
-		n = (int)write(2, msg, (size_t)n);	/* and nothing better to do if that fails */
+		n = (int)write(
+			2, msg,
+			(size_t)n); /* and nothing better to do if that fails */
 	_exit(127);
 }
 
 void msleep(int ms)
 {
-	struct timespec ts = { .tv_sec = ms / 1000, .tv_nsec = (long)(ms % 1000) * 1000000L };
+	struct timespec ts = { .tv_sec = ms / 1000,
+			       .tv_nsec = (long)(ms % 1000) * 1000000L };
 
 	while (nanosleep(&ts, &ts) < 0 && errno == EINTR)
 		;
@@ -144,12 +147,15 @@ int open_system(void)
 /* The operator's step: hand over an image file and name the kind. */
 int register_kind(int sys_fd, const char *name, const char *image_path)
 {
-	struct klet_kind_register reg = { .image_fd = open(image_path, O_RDONLY | O_CLOEXEC) };
+	struct klet_kind_register reg = {
+		.image_fd = open(image_path, O_RDONLY | O_CLOEXEC)
+	};
 	int kind;
 
 	if (reg.image_fd < 0)
 		die(image_path);
-	snprintf(reg.name, sizeof(reg.name), "%s", name);	/* the name KLET_KIND_LIST reports; unique */
+	snprintf(reg.name, sizeof(reg.name), "%s",
+		 name); /* the name KLET_KIND_LIST reports; unique */
 	kind = ioctl(sys_fd, KLET_KIND_REGISTER, &reg);
 	if (kind < 0)
 		die("KLET_KIND_REGISTER");
@@ -164,7 +170,7 @@ int find_kind(int sys_fd, const char *name)
 	struct klet_kind_list list = { .capacity = 16 };
 	unsigned int i;
 
-	do {						/* until the array is large enough */
+	do { /* until the array is large enough */
 		free(info);
 		info = calloc(list.capacity, sizeof(*info));
 		if (!info)
@@ -216,10 +222,12 @@ void join_cgroup(const char *dir)
 static int install_seccomp_kill(int nr)
 {
 	struct sock_filter filter[] = {
-		BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, arch)),
+		BPF_STMT(BPF_LD | BPF_W | BPF_ABS,
+			 offsetof(struct seccomp_data, arch)),
 		BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, AUDIT_ARCH_X86_64, 1, 0),
 		BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_KILL_PROCESS),
-		BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, nr)),
+		BPF_STMT(BPF_LD | BPF_W | BPF_ABS,
+			 offsetof(struct seccomp_data, nr)),
 		BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, (unsigned int)nr, 0, 1),
 		BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_KILL_PROCESS),
 		BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
@@ -237,12 +245,14 @@ static int install_seccomp_kill(int nr)
  * execute the exec descriptor. Everything set here survives the exec, and
  * the process never returns from it: the endovisor makes it the carrier.
  */
-void start_carrier(int exec_fd, unsigned int vcpu, const struct sandbox_opts *opt)
+void start_carrier(int exec_fd, unsigned int vcpu,
+		   const struct sandbox_opts *opt)
 {
 	char *argv[] = { "carrier", NULL };
 	char *envp[] = { NULL };
 
-	if (opt->pin || opt->cpu_hi >= 0) {		/* virtual CPU i on processor i, or a range */
+	if (opt->pin ||
+	    opt->cpu_hi >= 0) { /* virtual CPU i on processor i, or a range */
 		cpu_set_t set;
 		int cpu;
 
@@ -255,14 +265,16 @@ void start_carrier(int exec_fd, unsigned int vcpu, const struct sandbox_opts *op
 		if (sched_setaffinity(0, sizeof(set), &set) < 0)
 			die_child("sched_setaffinity");
 	}
-	if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0)	/* the endovisor insists on it */
+	if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) <
+	    0) /* the endovisor insists on it */
 		die_child("PR_SET_NO_NEW_PRIVS");
 	/* A seccomp filter bounds what the tenant may ask of its kernelet. */
 	if (opt->seccomp_kill_nr >= 0) {
 		if (install_seccomp_kill(opt->seccomp_kill_nr) < 0)
 			die_child("seccomp");
-		sandbox_say("carrier of vcpu %u: seccomp filter installed: system call %d kills the process",
-			    vcpu, opt->seccomp_kill_nr);
+		sandbox_say(
+			"carrier of vcpu %u: seccomp filter installed: system call %d kills the process",
+			vcpu, opt->seccomp_kill_nr);
 	}
 	execveat(exec_fd, "", argv, envp, AT_EMPTY_PATH);
 	die_child("execveat");
@@ -274,16 +286,18 @@ void start_carrier(int exec_fd, unsigned int vcpu, const struct sandbox_opts *op
  * the children through process descriptors and kill the sandbox ourselves
  * if one of them goes while the sandbox is still alive.
  */
-void wait_sandbox(int sandbox_fd, const pid_t *pids, unsigned int nr_vcpus, struct klet_exit *ex)
+void wait_sandbox(int sandbox_fd, const pid_t *pids, unsigned int nr_vcpus,
+		  struct klet_exit *ex)
 {
 	struct pollfd pfd[KLET_MAX_VCPUS + 1];
 	unsigned int i;
 
 	pfd[0].fd = sandbox_fd;
-	pfd[0].events = POLLIN;				/* readable once the sandbox has exited */
+	pfd[0].events = POLLIN; /* readable once the sandbox has exited */
 	for (i = 0; i < nr_vcpus; i++) {
 		pfd[i + 1].fd = (int)syscall(SYS_pidfd_open, pids[i], 0);
-		pfd[i + 1].events = POLLIN;			/* readable once the child has exited */
+		pfd[i + 1].events =
+			POLLIN; /* readable once the child has exited */
 		if (pfd[i + 1].fd < 0)
 			die("pidfd_open");
 	}
@@ -293,12 +307,13 @@ void wait_sandbox(int sandbox_fd, const pid_t *pids, unsigned int nr_vcpus, stru
 		if (pfd[0].revents & POLLIN)
 			break;
 		for (i = 0; i < nr_vcpus; i++)
-			if (pfd[i + 1].revents & POLLIN) {	/* a child is gone: end the sandbox */
+			if (pfd[i + 1].revents &
+			    POLLIN) { /* a child is gone: end the sandbox */
 				__u32 reason = 1;
 
 				ioctl(sandbox_fd, KLET_KILL, &reason);
 				close(pfd[i + 1].fd);
-				pfd[i + 1].fd = -1;		/* polled no more */
+				pfd[i + 1].fd = -1; /* polled no more */
 			}
 	}
 	for (i = 0; i < nr_vcpus; i++)
@@ -324,7 +339,10 @@ static const char *const state_name[] = {
 	"?", "created", "starting", "running", "dying", "exited",
 };
 static const char *const vcpu_state_name[] = {
-	"unstarted", "waiting", "running", "gone",
+	"unstarted",
+	"waiting",
+	"running",
+	"gone",
 };
 
 /* One line of KLET_GET_STATS, and one per virtual CPU. */
@@ -341,17 +359,22 @@ void sandbox_print_stats(const struct sandbox *sb, const char *when)
 		sandbox_say("KLET_GET_STATS: %s", strerror(errno));
 		return;
 	}
-	sandbox_say("sandbox %u %s: state %u (%s), %u vcpu(s), %llu KiB granted, %llu service call(s), %llu virtual interrupt(s), %llu line(s) dropped",
-		    st.slot, when, st.state, st.state <= 5 ? state_name[st.state] : "?",
-		    st.nr_vcpus, (unsigned long long)st.memory_granted >> 10,
-		    (unsigned long long)st.service_calls, (unsigned long long)st.virqs_raised,
-		    (unsigned long long)st.log_dropped);
+	sandbox_say(
+		"sandbox %u %s: state %u (%s), %u vcpu(s), %llu KiB granted, %llu service call(s), %llu virtual interrupt(s), %llu line(s) dropped",
+		st.slot, when, st.state,
+		st.state <= 5 ? state_name[st.state] : "?", st.nr_vcpus,
+		(unsigned long long)st.memory_granted >> 10,
+		(unsigned long long)st.service_calls,
+		(unsigned long long)st.virqs_raised,
+		(unsigned long long)st.log_dropped);
 	for (i = 0; i < st.nr_vcpus && i < KLET_MAX_VCPUS; i++)
-		sandbox_say("sandbox %u %s: vcpu %u pid %d state %u (%s), ran %llu ms, waited %llu ms runnable",
-			    st.slot, when, i, rows[i].pid, rows[i].state,
-			    rows[i].state <= 3 ? vcpu_state_name[rows[i].state] : "?",
-			    (unsigned long long)rows[i].run_ns / 1000000,
-			    (unsigned long long)rows[i].stolen_ns / 1000000);
+		sandbox_say(
+			"sandbox %u %s: vcpu %u pid %d state %u (%s), ran %llu ms, waited %llu ms runnable",
+			st.slot, when, i, rows[i].pid, rows[i].state,
+			rows[i].state <= 3 ? vcpu_state_name[rows[i].state] :
+					     "?",
+			(unsigned long long)rows[i].run_ns / 1000000,
+			(unsigned long long)rows[i].stolen_ns / 1000000);
 }
 
 /* The module's reference count from /proc/modules, read once; -1 if not loaded. */
@@ -368,7 +391,8 @@ int module_references(const char *name)
 		unsigned long size;
 		int n;
 
-		if (sscanf(line, "%127s %lu %d", mod, &size, &n) == 3 && strcmp(mod, name) == 0) {
+		if (sscanf(line, "%127s %lu %d", mod, &size, &n) == 3 &&
+		    strcmp(mod, name) == 0) {
 			refs = n;
 			break;
 		}
@@ -425,7 +449,8 @@ char proc_task_state(long pid)
 static void end_after(struct sandbox *sb, const struct sandbox_opts *opt)
 {
 	char ign[32], blk[32], pnd[32];
-	int ms = opt->kill_after_ms >= 0 ? opt->kill_after_ms : opt->klet_kill_after_ms;
+	int ms = opt->kill_after_ms >= 0 ? opt->kill_after_ms :
+					   opt->klet_kill_after_ms;
 
 	if (sandbox_exited(sb, ms)) {
 		sandbox_say("the sandbox ended by itself within %d ms", ms);
@@ -435,9 +460,12 @@ static void end_after(struct sandbox *sb, const struct sandbox_opts *opt)
 	proc_status_field(sb->pids[0], "SigIgn", ign, sizeof(ign));
 	proc_status_field(sb->pids[0], "SigBlk", blk, sizeof(blk));
 	proc_status_field(sb->pids[0], "SigPnd", pnd, sizeof(pnd));
-	sandbox_say("vcpu 0 carrier (pid %d) SigIgn %s SigBlk %s SigPnd %s", sb->pids[0], ign, blk, pnd);
+	sandbox_say("vcpu 0 carrier (pid %d) SigIgn %s SigBlk %s SigPnd %s",
+		    sb->pids[0], ign, blk, pnd);
 	if (opt->kill_after_ms >= 0) {
-		sandbox_say("SIGKILL to the carrier of vcpu 0 (pid %d) after %d ms", sb->pids[0], ms);
+		sandbox_say(
+			"SIGKILL to the carrier of vcpu 0 (pid %d) after %d ms",
+			sb->pids[0], ms);
 		if (kill(sb->pids[0], SIGKILL) < 0)
 			sandbox_say("kill: %s", strerror(errno));
 	} else {
@@ -467,8 +495,8 @@ static int out_fd(const char *path, int ours)
 }
 
 /* The holder's side: create, configure, start every virtual CPU, wait, destroy. */
-int run_sandbox(int sys_fd, const char *name, unsigned int nr_vcpus, const char *cmdline,
-		const struct sandbox_opts *opt)
+int run_sandbox(int sys_fd, const char *name, unsigned int nr_vcpus,
+		const char *cmdline, const struct sandbox_opts *opt)
 {
 	struct klet_create create = {
 		.kind = (__u32)find_kind(sys_fd, name),
@@ -483,20 +511,21 @@ int run_sandbox(int sys_fd, const char *name, unsigned int nr_vcpus, const char 
 	struct sandbox sb = { .sys_fd = sys_fd, .nr_vcpus = nr_vcpus };
 	unsigned int i;
 
-	if (opt->cgroup)				/* before the create: the group becomes the sandbox's */
+	if (opt->cgroup) /* before the create: the group becomes the sandbox's */
 		join_cgroup(opt->cgroup);
 	sb.fd = ioctl(sys_fd, KLET_CREATE, &create);
 	if (sb.fd < 0)
 		die("KLET_CREATE");
 	if (!opt->kernel_log) {
-		int out = out_fd(opt->console_path, 1), err = out_fd(opt->log_path, 2);
+		int out = out_fd(opt->console_path, 1),
+		    err = out_fd(opt->log_path, 2);
 
 		if (ioctl(sb.fd, KLET_SET_CONSOLE, &out) < 0)
 			die("KLET_SET_CONSOLE");
 		if (ioctl(sb.fd, KLET_SET_LOG, &err) < 0)
 			die("KLET_SET_LOG");
 		if (out != 1)
-			close(out);			/* the endovisor holds its own reference */
+			close(out); /* the endovisor holds its own reference */
 		if (err != 2)
 			close(err);
 	}
@@ -504,8 +533,8 @@ int run_sandbox(int sys_fd, const char *name, unsigned int nr_vcpus, const char 
 	if (ioctl(sb.fd, KLET_GET_STATS, &st) < 0)
 		die("KLET_GET_STATS");
 	sb.slot = (int)st.slot;
-	sandbox_say("sandbox %d created: kind %s, %u vcpu(s), cmdline \"%s\"", sb.slot, name,
-		    nr_vcpus, cmdline);
+	sandbox_say("sandbox %d created: kind %s, %u vcpu(s), cmdline \"%s\"",
+		    sb.slot, name, nr_vcpus, cmdline);
 
 	for (i = 0; i < nr_vcpus; i++) {
 		int exec_fd = ioctl(sb.fd, KLET_GET_VCPU_EXEC_FD, &i);
@@ -516,7 +545,7 @@ int run_sandbox(int sys_fd, const char *name, unsigned int nr_vcpus, const char 
 		if (sb.pids[i] < 0)
 			die("fork");
 		if (sb.pids[i] == 0)
-			start_carrier(exec_fd, i, opt);	/* does not return */
+			start_carrier(exec_fd, i, opt); /* does not return */
 		close(exec_fd);
 	}
 
@@ -525,23 +554,26 @@ int run_sandbox(int sys_fd, const char *name, unsigned int nr_vcpus, const char 
 	if (opt->kill_after_ms >= 0 || opt->klet_kill_after_ms >= 0)
 		end_after(&sb, opt);
 
-	wait_sandbox(sb.fd, sb.pids, nr_vcpus, &sb.ex);		/* until the sandbox has ended */
+	wait_sandbox(sb.fd, sb.pids, nr_vcpus,
+		     &sb.ex); /* until the sandbox has ended */
 	for (i = 0; i < nr_vcpus; i++)
-		waitpid(sb.pids[i], NULL, 0);		/* the carriers died by SIGKILL */
+		waitpid(sb.pids[i], NULL, 0); /* the carriers died by SIGKILL */
 	sandbox_print_stats(&sb, "at its end");
 	close(sb.fd);
 
 	switch (sb.ex.how) {
 	case KLET_END_EXITED:
-		sandbox_say("sandbox %d exited: the kernel proper powered off, exit code %d", sb.slot,
-			    sb.ex.code);
+		sandbox_say(
+			"sandbox %d exited: the kernel proper powered off, exit code %d",
+			sb.slot, sb.ex.code);
 		return sb.ex.code;
 	case KLET_END_PANICKED:
-		sandbox_say("sandbox %d: the kernelet panicked: %.*s", sb.slot, KLET_MESSAGE_LEN,
-			    sb.ex.message);
+		sandbox_say("sandbox %d: the kernelet panicked: %.*s", sb.slot,
+			    KLET_MESSAGE_LEN, sb.ex.message);
 		return 128;
 	default:
-		sandbox_say("sandbox %d was killed: reason %#x", sb.slot, sb.ex.reason);
+		sandbox_say("sandbox %d was killed: reason %#x", sb.slot,
+			    sb.ex.reason);
 		return 129;
 	}
 }
@@ -552,8 +584,9 @@ int run_sandbox(int sys_fd, const char *name, unsigned int nr_vcpus, const char 
  * the sandbox's command line on the third. Returns 0, or -1 if the file is
  * missing.
  */
-int sandbox_read_staged(const char *path, char *mode, size_t mode_len, unsigned int *nr_vcpus,
-			char *cmdline, size_t cmdline_len)
+int sandbox_read_staged(const char *path, char *mode, size_t mode_len,
+			unsigned int *nr_vcpus, char *cmdline,
+			size_t cmdline_len)
 {
 	char line[KLET_CMDLINE_MAX];
 	FILE *f = fopen(path, "re");

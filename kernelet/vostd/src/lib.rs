@@ -88,10 +88,8 @@ pub(crate) unsafe extern "C" fn kernelet_entry(
 
     // The sandbox's command line, once the heap can hold it.
     let cmdline = if args.cmdline_ptr != 0 && args.cmdline_len != 0 {
-        let bytes = core::slice::from_raw_parts(
-            args.cmdline_ptr as *const u8,
-            args.cmdline_len as usize,
-        );
+        let bytes =
+            core::slice::from_raw_parts(args.cmdline_ptr as *const u8, args.cmdline_len as usize);
         core::str::from_utf8(bytes).unwrap_or("")
     } else {
         ""

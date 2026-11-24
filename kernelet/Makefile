@@ -290,6 +290,25 @@ $(CRATES_STAMP): Cargo.lock
 	 fi
 	@mkdir -p $(BUILD) && touch $@
 
+CLANG_FORMAT ?= clang-format
+.PHONY: check-format check-rust-format check-c-format clippy
+check-format: check-rust-format check-c-format
+
+check-rust-format: kernel-proper-check
+	$(CARGO) fmt --all -- --check
+
+check-c-format: SHELL := /bin/bash
+check-c-format: .SHELLFLAGS := -eo pipefail -c
+check-c-format:
+	git ls-files -z -- '*.c' '*.h' | xargs -0 -r $(CLANG_FORMAT) --dry-run --Werror
+
+# Clippy needs the same embedded tenant programs and target as an image build.
+clippy: $(CRATES_STAMP) $(PROBE_ELF) $(YIELD_ELF) $(SCHED_ELF) $(CURDIR)/kernels/mem/mem
+	CARGO_TARGET_DIR=$(CARGO_DIR) RUSTFLAGS="$(KLET_RUSTFLAGS)" \
+	OSTD_TASK_STACK_SIZE_IN_PAGES=$(KLET_STACK_PAGES) $(CARGO) clippy \
+	    --locked --offline --release --target $(RUST_TARGET) $(KLET_BUILD_STD) \
+	    --no-deps --workspace --exclude hello -- -D warnings
+
 # The kernel proper is never edited: it must stay byte-identical to the
 # template in the Asterinas tree.
 kernel-proper-check:

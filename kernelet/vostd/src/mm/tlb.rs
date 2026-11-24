@@ -42,8 +42,14 @@ impl TlbFlushOp {
 
     /// Flushes a range of pages.
     pub const fn for_range(range: Range<Vaddr>) -> Self {
-        assert!(range.start % PAGE_SIZE == 0, "range start must be page-aligned");
-        assert!(range.end % PAGE_SIZE == 0, "range end must be page-aligned");
+        assert!(
+            range.start.is_multiple_of(PAGE_SIZE),
+            "range start must be page-aligned"
+        );
+        assert!(
+            range.end.is_multiple_of(PAGE_SIZE),
+            "range end must be page-aligned"
+        );
         assert!(range.start < range.end, "range must not be empty");
         let num_pages = (range.end - range.start) / PAGE_SIZE;
         if num_pages >= FLUSH_ALL_PAGES_THRESHOLD {

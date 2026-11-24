@@ -49,17 +49,17 @@ pub(crate) fn synchronize() {
     GRACE_PERIODS.fetch_add(1, Ordering::Relaxed);
     let me = crate::cpu::CpuId::current_racy().as_usize();
     let n = crate::cpu::num_cpus().min(MAX_CPUS);
-    for v in 0..n {
+    for (v, seq) in SEQ[..n].iter().enumerate() {
         if v == me {
             continue;
         }
-        let s = SEQ[v].load(Ordering::SeqCst);
+        let s = seq.load(Ordering::SeqCst);
         if s & 1 == 0 {
             continue;
         }
         GRACE_WAITS.fetch_add(1, Ordering::Relaxed);
         let mut spins: u32 = 0;
-        while SEQ[v].load(Ordering::Acquire) == s {
+        while seq.load(Ordering::Acquire) == s {
             core::hint::spin_loop();
             spins += 1;
             if spins % 1000 == 0 {

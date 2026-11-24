@@ -52,8 +52,8 @@ static bool klet_image_range(u64 offset, u64 size, u64 limit)
 }
 
 // Find a segment containing an entire interval, excluding page padding.
-static const struct klet_image_segment *klet_image_segment(
-	const struct klet_kind *kind, u64 offset, u64 size)
+static const struct klet_image_segment *
+klet_image_segment(const struct klet_kind *kind, u64 offset, u64 size)
 {
 	unsigned int i;
 
@@ -68,7 +68,8 @@ static const struct klet_image_segment *klet_image_segment(
 }
 
 // Validate optional section metadata; loading itself uses program headers.
-static int klet_image_sections(const void *buf, size_t len, const Elf64_Ehdr *eh)
+static int klet_image_sections(const void *buf, size_t len,
+			       const Elf64_Ehdr *eh)
 {
 	const Elf64_Shdr *sh;
 	unsigned int i;
@@ -89,19 +90,23 @@ static int klet_image_sections(const void *buf, size_t len, const Elf64_Ehdr *eh
 			return -ENOEXEC;
 		if (s->sh_flags & SHF_ALLOC) {
 			if ((s->sh_flags & SHF_TLS) ||
-			    s->sh_type == SHT_INIT_ARRAY || s->sh_type == SHT_FINI_ARRAY ||
+			    s->sh_type == SHT_INIT_ARRAY ||
+			    s->sh_type == SHT_FINI_ARRAY ||
 			    s->sh_type == SHT_PREINIT_ARRAY)
 				return -ENOEXEC;
 		}
 		if (s->sh_type != SHT_SYMTAB && s->sh_type != SHT_DYNSYM)
 			continue;
-		if (s->sh_entsize != sizeof(Elf64_Sym) || s->sh_size % sizeof(Elf64_Sym) ||
+		if (s->sh_entsize != sizeof(Elf64_Sym) ||
+		    s->sh_size % sizeof(Elf64_Sym) ||
 		    !IS_ALIGNED(s->sh_offset, __alignof__(Elf64_Sym)))
 			return -ENOEXEC;
 		for (j = 1; j < s->sh_size / sizeof(Elf64_Sym); j++) {
-			const Elf64_Sym *sym = buf + s->sh_offset + j * sizeof(*sym);
+			const Elf64_Sym *sym =
+				buf + s->sh_offset + j * sizeof(*sym);
 
-			if (sym->st_shndx == SHN_UNDEF || sym->st_shndx == SHN_COMMON ||
+			if (sym->st_shndx == SHN_UNDEF ||
+			    sym->st_shndx == SHN_COMMON ||
 			    ELF64_ST_TYPE(sym->st_info) == STT_TLS)
 				return -ENOEXEC;
 		}
@@ -110,8 +115,8 @@ static int klet_image_sections(const void *buf, size_t len, const Elf64_Ehdr *eh
 }
 
 // Record load segments and copy their file contents into the zeroed template.
-static int klet_image_layout(struct klet_kind *kind, const void *buf, size_t len,
-			     Elf64_Phdr *dynamic)
+static int klet_image_layout(struct klet_kind *kind, const void *buf,
+			     size_t len, Elf64_Phdr *dynamic)
 {
 	const Elf64_Ehdr *eh = buf;
 	const Elf64_Phdr *ph;
@@ -120,12 +125,13 @@ static int klet_image_layout(struct klet_kind *kind, const void *buf, size_t len
 	int err;
 
 	if (len < sizeof(*eh) || memcmp(eh->e_ident, ELFMAG, SELFMAG) ||
-	    eh->e_ident[EI_CLASS] != ELFCLASS64 || eh->e_ident[EI_DATA] != ELFDATA2LSB ||
-	    eh->e_ident[EI_VERSION] != EV_CURRENT || eh->e_version != EV_CURRENT ||
-	    eh->e_type != ET_DYN || eh->e_machine != EM_X86_64 ||
-	    eh->e_ehsize != sizeof(*eh) || eh->e_phentsize != sizeof(*ph) ||
-	    !eh->e_phnum || eh->e_phnum > 32 ||
-	    !IS_ALIGNED(eh->e_phoff, __alignof__(*ph)) ||
+	    eh->e_ident[EI_CLASS] != ELFCLASS64 ||
+	    eh->e_ident[EI_DATA] != ELFDATA2LSB ||
+	    eh->e_ident[EI_VERSION] != EV_CURRENT ||
+	    eh->e_version != EV_CURRENT || eh->e_type != ET_DYN ||
+	    eh->e_machine != EM_X86_64 || eh->e_ehsize != sizeof(*eh) ||
+	    eh->e_phentsize != sizeof(*ph) || !eh->e_phnum ||
+	    eh->e_phnum > 32 || !IS_ALIGNED(eh->e_phoff, __alignof__(*ph)) ||
 	    !klet_image_range(eh->e_phoff, (u64)eh->e_phnum * sizeof(*ph), len))
 		return -ENOEXEC;
 	err = klet_image_sections(buf, len, eh);
@@ -150,15 +156,18 @@ static int klet_image_layout(struct klet_kind *kind, const void *buf, size_t len
 				return -ENOEXEC;
 			continue;
 		}
-		if (p->p_type == PT_NULL || p->p_type == PT_PHDR || p->p_type == PT_NOTE ||
-		    p->p_type == PT_GNU_RELRO)
+		if (p->p_type == PT_NULL || p->p_type == PT_PHDR ||
+		    p->p_type == PT_NOTE || p->p_type == PT_GNU_RELRO)
 			continue;
-		if (p->p_type != PT_LOAD || kind->nr_segments == KLET_IMAGE_SEGMENTS ||
-		    !p->p_memsz || p->p_filesz > p->p_memsz ||
-		    !IS_ALIGNED(p->p_vaddr, PAGE_SIZE) || !IS_ALIGNED(p->p_offset, PAGE_SIZE) ||
+		if (p->p_type != PT_LOAD ||
+		    kind->nr_segments == KLET_IMAGE_SEGMENTS || !p->p_memsz ||
+		    p->p_filesz > p->p_memsz ||
+		    !IS_ALIGNED(p->p_vaddr, PAGE_SIZE) ||
+		    !IS_ALIGNED(p->p_offset, PAGE_SIZE) ||
 		    p->p_align != PAGE_SIZE || p->p_vaddr != end ||
 		    !klet_image_range(p->p_offset, p->p_filesz, len) ||
-		    !klet_image_range(p->p_vaddr, p->p_memsz, KLET_IMAGE_SPAN_MAX) ||
+		    !klet_image_range(p->p_vaddr, p->p_memsz,
+				      KLET_IMAGE_SPAN_MAX) ||
 		    (p->p_flags != PF_R && p->p_flags != (PF_R | PF_X) &&
 		     p->p_flags != (PF_R | PF_W)))
 			return -ENOEXEC;
@@ -191,9 +200,11 @@ static int klet_image_layout(struct klet_kind *kind, const void *buf, size_t len
 		return -ENOMEM;
 	for (i = 0; i < eh->e_phnum; i++)
 		if (ph[i].p_type == PT_LOAD)
-			memcpy(kind->image + ph[i].p_vaddr, buf + ph[i].p_offset, ph[i].p_filesz);
+			memcpy(kind->image + ph[i].p_vaddr,
+			       buf + ph[i].p_offset, ph[i].p_filesz);
 	if (!klet_image_segment(kind, dynamic->p_vaddr, dynamic->p_memsz) ||
-	    memcmp(kind->image + dynamic->p_vaddr, buf + dynamic->p_offset, dynamic->p_filesz))
+	    memcmp(kind->image + dynamic->p_vaddr, buf + dynamic->p_offset,
+		   dynamic->p_filesz))
 		return -ENOEXEC;
 	return 0;
 }
@@ -212,7 +223,8 @@ static int klet_image_dynamic(struct klet_kind *kind, const Elf64_Phdr *ph)
 	const Elf64_Dyn *dyn = (const void *)(kind->image + ph->p_vaddr);
 	const struct klet_image_segment *rela_seg;
 	u64 rela = 0, relasz = 0, relaent = 0;
-	bool found_rela = false, found_size = false, found_ent = false, terminated = false;
+	bool found_rela = false, found_size = false, found_ent = false,
+	     terminated = false;
 	bool found_pie = false;
 	unsigned int i;
 
@@ -246,7 +258,8 @@ static int klet_image_dynamic(struct klet_kind *kind, const Elf64_Phdr *ph)
 				return -ENOEXEC;
 			break;
 		case DT_FLAGS_1:
-			if (found_pie || !(val & DF_1_PIE) || (val & ~(DF_1_PIE | DF_1_NOW)))
+			if (found_pie || !(val & DF_1_PIE) ||
+			    (val & ~(DF_1_PIE | DF_1_NOW)))
 				return -ENOEXEC;
 			found_pie = true;
 			break;
@@ -276,28 +289,36 @@ static int klet_image_dynamic(struct klet_kind *kind, const Elf64_Phdr *ph)
 	}
 done:
 	rela_seg = klet_image_segment(kind, rela, relasz);
-	if (!terminated || !found_pie || !found_rela || !found_size || !found_ent ||
-	    relaent != sizeof(Elf64_Rela) || relasz % sizeof(Elf64_Rela) ||
-	    !IS_ALIGNED(rela, __alignof__(Elf64_Rela)) ||
-	    !rela_seg || (rela_seg->flags & PF_W) ||
-	    !klet_image_range(rela - rela_seg->offset, relasz, rela_seg->filesz))
+	if (!terminated || !found_pie || !found_rela || !found_size ||
+	    !found_ent || relaent != sizeof(Elf64_Rela) ||
+	    relasz % sizeof(Elf64_Rela) ||
+	    !IS_ALIGNED(rela, __alignof__(Elf64_Rela)) || !rela_seg ||
+	    (rela_seg->flags & PF_W) ||
+	    !klet_image_range(rela - rela_seg->offset, relasz,
+			      rela_seg->filesz))
 		return -ENOEXEC;
 	kind->nr_relocs = relasz / sizeof(Elf64_Rela);
-	kind->relocs = kvcalloc(kind->nr_relocs, sizeof(*kind->relocs), GFP_KERNEL);
+	kind->relocs =
+		kvcalloc(kind->nr_relocs, sizeof(*kind->relocs), GFP_KERNEL);
 	if (!kind->relocs)
 		return -ENOMEM;
 	for (i = 0; i < kind->nr_relocs; i++) {
-		const Elf64_Rela *r = (const void *)(kind->image + rela + i * sizeof(*r));
-		const struct klet_image_segment *seg = klet_image_segment(kind, r->r_offset, sizeof(u64));
+		const Elf64_Rela *r =
+			(const void *)(kind->image + rela + i * sizeof(*r));
+		const struct klet_image_segment *seg =
+			klet_image_segment(kind, r->r_offset, sizeof(u64));
 
-		if (ELF64_R_TYPE(r->r_info) != R_X86_64_RELATIVE || ELF64_R_SYM(r->r_info) ||
-		    !IS_ALIGNED(r->r_offset, sizeof(u64)) || !seg || !(seg->flags & PF_W) ||
-		    r->r_addend < 0 || !klet_image_segment(kind, r->r_addend, 1))
+		if (ELF64_R_TYPE(r->r_info) != R_X86_64_RELATIVE ||
+		    ELF64_R_SYM(r->r_info) ||
+		    !IS_ALIGNED(r->r_offset, sizeof(u64)) || !seg ||
+		    !(seg->flags & PF_W) || r->r_addend < 0 ||
+		    !klet_image_segment(kind, r->r_addend, 1))
 			return -ENOEXEC;
 		kind->relocs[i].offset = r->r_offset;
 		kind->relocs[i].addend = r->r_addend;
 	}
-	sort(kind->relocs, kind->nr_relocs, sizeof(*kind->relocs), klet_reloc_compare, NULL);
+	sort(kind->relocs, kind->nr_relocs, sizeof(*kind->relocs),
+	     klet_reloc_compare, NULL);
 	for (i = 1; i < kind->nr_relocs; i++)
 		if (kind->relocs[i - 1].offset == kind->relocs[i].offset)
 			return -ENOEXEC;
@@ -317,7 +338,8 @@ static int klet_image_entry(struct klet_kind *kind)
 	unsigned int i, j;
 
 	seg = klet_image_segment(kind, kind->entry_offset, sizeof(*entry));
-	if (!seg || !(seg->flags & PF_W) || !IS_ALIGNED(kind->entry_offset, __alignof__(*entry)))
+	if (!seg || !(seg->flags & PF_W) ||
+	    !IS_ALIGNED(kind->entry_offset, __alignof__(*entry)))
 		return -ENOEXEC;
 	entry = (const void *)(kind->image + kind->entry_offset);
 	if (entry->abi_version != KLET_ABI_VERSION)
@@ -360,7 +382,8 @@ int klet_image_load(struct klet_kind *kind, const void *buf, size_t len)
 	err = klet_image_entry(kind);
 	if (err)
 		goto fail;
-	kind->shared_pages = kvcalloc(kind->nr_pages, sizeof(*kind->shared_pages), GFP_KERNEL);
+	kind->shared_pages = kvcalloc(kind->nr_pages,
+				      sizeof(*kind->shared_pages), GFP_KERNEL);
 	err = -ENOMEM;
 	if (!kind->shared_pages)
 		goto fail;
@@ -369,17 +392,22 @@ int klet_image_load(struct klet_kind *kind, const void *buf, size_t len)
 
 		if (seg->flags & PF_W)
 			continue;
-		for (j = seg->offset >> PAGE_SHIFT; j < PAGE_ALIGN(seg->offset + seg->memsz) >> PAGE_SHIFT; j++) {
+		for (j = seg->offset >> PAGE_SHIFT;
+		     j < PAGE_ALIGN(seg->offset + seg->memsz) >> PAGE_SHIFT;
+		     j++) {
 			struct page *page = alloc_page(GFP_KERNEL | __GFP_ZERO);
 
 			if (!page)
 				goto fail;
 			kind->shared_pages[j] = page;
-			memcpy(page_address(page), kind->image + ((size_t)j << PAGE_SHIFT), PAGE_SIZE);
+			memcpy(page_address(page),
+			       kind->image + ((size_t)j << PAGE_SHIFT),
+			       PAGE_SIZE);
 		}
 	}
 	pr_info("kernelet: PIE image loaded: %zu bytes, %zu shared, %zu private per instance, %u relative relocations\n",
-		kind->image_size, kind->text_size, kind->data_size, kind->nr_relocs);
+		kind->image_size, kind->text_size, kind->data_size,
+		kind->nr_relocs);
 	return 0;
 fail:
 	klet_image_free(kind);
@@ -397,7 +425,8 @@ static void klet_image_stop_locked(struct klet_inst *inst)
 	}
 	if (inst->image_pages)
 		for (i = 0; i < inst->kind->nr_pages; i++)
-			if (!inst->kind->shared_pages[i] && inst->image_pages[i])
+			if (!inst->kind->shared_pages[i] &&
+			    inst->image_pages[i])
 				__free_page(inst->image_pages[i]);
 	kvfree(inst->image_pages);
 	inst->image_pages = NULL;
@@ -423,7 +452,8 @@ static int klet_image_check_sharing(struct klet_inst *inst)
 
 	for (slot = 0; slot < KLET_MAX_SANDBOXES; slot++) {
 		peer = klet_sandboxes[slot];
-		if (!peer || peer == inst || peer->kind != inst->kind || !peer->image_base)
+		if (!peer || peer == inst || peer->kind != inst->kind ||
+		    !peer->image_base)
 			continue;
 		shared = private = 0;
 		if (peer->image_base == inst->image_base) {
@@ -431,10 +461,13 @@ static int klet_image_check_sharing(struct klet_inst *inst)
 			break;
 		}
 		for (i = 0; i < inst->kind->nr_pages; i++) {
-			struct page *a = vmalloc_to_page(inst->image_base + ((size_t)i << PAGE_SHIFT));
-			struct page *b = vmalloc_to_page(peer->image_base + ((size_t)i << PAGE_SHIFT));
+			struct page *a = vmalloc_to_page(
+				inst->image_base + ((size_t)i << PAGE_SHIFT));
+			struct page *b = vmalloc_to_page(
+				peer->image_base + ((size_t)i << PAGE_SHIFT));
 
-			if (!a || !b || a != inst->image_pages[i] || b != peer->image_pages[i] ||
+			if (!a || !b || a != inst->image_pages[i] ||
+			    b != peer->image_pages[i] ||
 			    (!!inst->kind->shared_pages[i] != (a == b))) {
 				err = -EINVAL;
 				break;
@@ -442,7 +475,7 @@ static int klet_image_check_sharing(struct klet_inst *inst)
 			if (a == b)
 				shared++;
 			else
-				private++;
+			private++;
 		}
 		if (err)
 			break;
@@ -460,7 +493,8 @@ int klet_image_start(struct klet_inst *inst)
 	int err = -ENOMEM;
 
 	mutex_lock(&klet_table_lock);
-	inst->image_pages = kvcalloc(kind->nr_pages, sizeof(*inst->image_pages), GFP_KERNEL);
+	inst->image_pages = kvcalloc(kind->nr_pages, sizeof(*inst->image_pages),
+				     GFP_KERNEL);
 	if (!inst->image_pages)
 		goto fail;
 	for (i = 0; i < kind->nr_pages; i++) {
@@ -468,12 +502,15 @@ int klet_image_start(struct klet_inst *inst)
 			inst->image_pages[i] = kind->shared_pages[i];
 			continue;
 		}
-		inst->image_pages[i] = alloc_page(GFP_KERNEL_ACCOUNT | __GFP_ZERO);
+		inst->image_pages[i] =
+			alloc_page(GFP_KERNEL_ACCOUNT | __GFP_ZERO);
 		if (!inst->image_pages[i])
 			goto fail;
-		memcpy(page_address(inst->image_pages[i]), kind->image + ((size_t)i << PAGE_SHIFT), PAGE_SIZE);
+		memcpy(page_address(inst->image_pages[i]),
+		       kind->image + ((size_t)i << PAGE_SHIFT), PAGE_SIZE);
 	}
-	inst->image_base = vmap(inst->image_pages, kind->nr_pages, VM_MAP, PAGE_KERNEL_RO);
+	inst->image_base =
+		vmap(inst->image_pages, kind->nr_pages, VM_MAP, PAGE_KERNEL_RO);
 	if (!inst->image_base)
 		goto fail;
 	// No new writable alias of the shared code is ever created.
@@ -482,7 +519,8 @@ int klet_image_start(struct klet_inst *inst)
 
 		if (!(seg->flags & PF_W))
 			continue;
-		err = set_memory_rw((unsigned long)inst->image_base + seg->offset,
+		err = set_memory_rw((unsigned long)inst->image_base +
+					    seg->offset,
 				    PAGE_ALIGN(seg->memsz) >> PAGE_SHIFT);
 		if (err)
 			goto fail;
@@ -490,16 +528,19 @@ int klet_image_start(struct klet_inst *inst)
 	for (i = 0; i < kind->nr_relocs; i++) {
 		const struct klet_image_reloc *r = &kind->relocs[i];
 
-		*(u64 *)(inst->image_base + r->offset) = (u64)(unsigned long)inst->image_base + r->addend;
+		*(u64 *)(inst->image_base + r->offset) =
+			(u64)(unsigned long)inst->image_base + r->addend;
 	}
 	for (i = 0; i < kind->nr_segments; i++) {
 		const struct klet_image_segment *seg = &kind->segments[i];
-		unsigned long address = (unsigned long)inst->image_base + seg->offset;
+		unsigned long address =
+			(unsigned long)inst->image_base + seg->offset;
 		unsigned int pages = PAGE_ALIGN(seg->memsz) >> PAGE_SHIFT;
 
 		if (seg->flags & PF_W)
 			continue;
-		err = seg->flags & PF_X ? set_memory_rox(address, pages) : set_memory_ro(address, pages);
+		err = seg->flags & PF_X ? set_memory_rox(address, pages) :
+					  set_memory_ro(address, pages);
 		if (err)
 			goto fail;
 	}
@@ -511,7 +552,8 @@ int klet_image_start(struct klet_inst *inst)
 		goto fail;
 	pr_info("kernelet: sandbox %d: PIE mapping [%#lx, %#lx), shared %zu bytes, private %zu bytes\n",
 		inst->slot, (unsigned long)inst->image_base,
-		(unsigned long)inst->image_base + kind->image_size, kind->text_size, kind->data_size);
+		(unsigned long)inst->image_base + kind->image_size,
+		kind->text_size, kind->data_size);
 	mutex_unlock(&klet_table_lock);
 	return 0;
 fail:
@@ -532,7 +574,8 @@ void klet_image_free(struct klet_kind *kind)
 			if (!page)
 				continue;
 			// Permission changes also protected the direct-map alias.
-			if (WARN_ON(set_memory_rw((unsigned long)page_address(page), 1)))
+			if (WARN_ON(set_memory_rw(
+				    (unsigned long)page_address(page), 1)))
 				continue;
 			__free_page(page);
 		}

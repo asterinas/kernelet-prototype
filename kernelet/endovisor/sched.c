@@ -69,7 +69,8 @@ static bool klet_notifiers_up;
  */
 static void klet_sched_in(struct preempt_notifier *pn, int cpu)
 {
-	struct klet_carrier *c = container_of(pn, struct klet_carrier, pnotifier);
+	struct klet_carrier *c =
+		container_of(pn, struct klet_carrier, pnotifier);
 
 	(void)cpu;
 
@@ -80,7 +81,8 @@ static void klet_sched_in(struct preempt_notifier *pn, int cpu)
 			u64 stolen = now - c->off_cpu_ns;
 
 			c->vrec.stolen_ns += stolen;
-			atomic_add((int)(stolen / NSEC_PER_MSEC), &c->inst->n.stolen_ms);
+			atomic_add((int)(stolen / NSEC_PER_MSEC),
+				   &c->inst->n.stolen_ms);
 		}
 		c->off_cpu_ns = 0;
 	}
@@ -88,9 +90,11 @@ static void klet_sched_in(struct preempt_notifier *pn, int cpu)
 	klet_watch_arm(c);
 }
 
-static void klet_sched_out(struct preempt_notifier *pn, struct task_struct *next)
+static void klet_sched_out(struct preempt_notifier *pn,
+			   struct task_struct *next)
 {
-	struct klet_carrier *c = container_of(pn, struct klet_carrier, pnotifier);
+	struct klet_carrier *c =
+		container_of(pn, struct klet_carrier, pnotifier);
 
 	(void)next;
 
@@ -118,7 +122,8 @@ static void klet_sched_out(struct preempt_notifier *pn, struct task_struct *next
 
 static void klet_sched_out_common(struct preempt_notifier *pn)
 {
-	struct klet_carrier *c = container_of(pn, struct klet_carrier, pnotifier);
+	struct klet_carrier *c =
+		container_of(pn, struct klet_carrier, pnotifier);
 
 	/*
 	 * Off the processor, the carrier has given it back, so a first strike
@@ -186,9 +191,17 @@ int klet_sched_init(void)
 	pr_warn("kernelet: no CONFIG_PREEMPT_NOTIFIERS: involuntary preemptions of a critical section cannot be counted\n");
 	return 0;
 }
-void klet_sched_exit(void) { }
-void klet_sched_attach(struct klet_carrier *c) { (void)c; }
-void klet_sched_detach(struct klet_carrier *c) { (void)c; }
+void klet_sched_exit(void)
+{
+}
+void klet_sched_attach(struct klet_carrier *c)
+{
+	(void)c;
+}
+void klet_sched_detach(struct klet_carrier *c)
+{
+	(void)c;
+}
 
 #endif /* CONFIG_PREEMPT_NOTIFIERS */
 

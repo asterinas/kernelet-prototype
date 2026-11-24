@@ -60,10 +60,33 @@ impl MemStats {
         macro_rules! d {
             ($($f:ident),*) => { MemStats { $($f: self.$f.wrapping_sub(before.$f),)* frames_in_use: self.frames_in_use } };
         }
-        d!(faults, mkwrites, reported, kernel_faults, maps, unmaps, unmapped, protects,
-           protected, flushes, flush_alls, waits, wait_sleeps, wakes, spaces,
-           lock_cas_retries, lock_waits, grace_periods, grace_waits,
-           owner_checks, retired, drained, lifted, withheld_in, withheld_out)
+        d!(
+            faults,
+            mkwrites,
+            reported,
+            kernel_faults,
+            maps,
+            unmaps,
+            unmapped,
+            protects,
+            protected,
+            flushes,
+            flush_alls,
+            waits,
+            wait_sleeps,
+            wakes,
+            spaces,
+            lock_cas_retries,
+            lock_waits,
+            grace_periods,
+            grace_waits,
+            owner_checks,
+            retired,
+            drained,
+            lifted,
+            withheld_in,
+            withheld_out
+        )
     }
 }
 

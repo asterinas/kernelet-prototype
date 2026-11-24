@@ -33,7 +33,6 @@
 #include <time.h>
 #include <unistd.h>
 
-
 /* Must match yield/src/lib.rs. */
 #define ROUNDS 800000000ULL
 #define MUL 0x5851f42d4c957f2dULL
@@ -59,8 +58,7 @@ static void out(const char *s)
 	tcdrain(1);
 }
 
-__attribute__((format(printf, 1, 2)))
-static void outf(const char *fmt, ...)
+__attribute__((format(printf, 1, 2))) static void outf(const char *fmt, ...)
 {
 	char buf[256];
 	va_list ap;
@@ -123,15 +121,32 @@ static void competitor(void)
 		if (chunk > 2000000ULL)
 			chunk = 2000000ULL;
 		for (i = 0; i < chunk; i++) {
-			s0 ^= s0 << 13; s0 ^= s0 >> 7; s0 ^= s0 << 17;
-			s1 ^= s1 << 13; s1 ^= s1 >> 7; s1 ^= s1 << 17;
-			s2 ^= s2 << 13; s2 ^= s2 >> 7; s2 ^= s2 << 17;
-			s3 ^= s3 << 13; s3 ^= s3 >> 7; s3 ^= s3 << 17;
-			s4 ^= s4 << 13; s4 ^= s4 >> 7; s4 ^= s4 << 17;
-			s5 ^= s5 << 13; s5 ^= s5 >> 7; s5 ^= s5 << 17;
-			s6 ^= s6 << 13; s6 ^= s6 >> 7; s6 ^= s6 << 17;
-			s7 ^= s7 << 13; s7 ^= s7 >> 7; s7 ^= s7 << 17;
-			acc = acc * MUL + (s0 ^ s1 ^ s2 ^ s3 ^ s4 ^ s5 ^ s6 ^ s7);
+			s0 ^= s0 << 13;
+			s0 ^= s0 >> 7;
+			s0 ^= s0 << 17;
+			s1 ^= s1 << 13;
+			s1 ^= s1 >> 7;
+			s1 ^= s1 << 17;
+			s2 ^= s2 << 13;
+			s2 ^= s2 >> 7;
+			s2 ^= s2 << 17;
+			s3 ^= s3 << 13;
+			s3 ^= s3 >> 7;
+			s3 ^= s3 << 17;
+			s4 ^= s4 << 13;
+			s4 ^= s4 >> 7;
+			s4 ^= s4 << 17;
+			s5 ^= s5 << 13;
+			s5 ^= s5 >> 7;
+			s5 ^= s5 << 17;
+			s6 ^= s6 << 13;
+			s6 ^= s6 >> 7;
+			s6 ^= s6 << 17;
+			s7 ^= s7 << 13;
+			s7 ^= s7 >> 7;
+			s7 ^= s7 << 17;
+			acc = acc * MUL +
+			      (s0 ^ s1 ^ s2 ^ s3 ^ s4 ^ s5 ^ s6 ^ s7);
 		}
 		done += chunk;
 

@@ -82,7 +82,7 @@ pub fn all_cpus() -> impl Iterator<Item = CpuId> {
 
 /// Records how many virtual CPUs the sandbox has. Called once, at entry.
 pub(crate) fn init(nr: usize) {
-    assert!(nr >= 1 && nr <= MAX_CPUS);
+    assert!((1..=MAX_CPUS).contains(&nr));
     NUM_CPUS.store(nr as u32, Ordering::Relaxed);
 }
 
