@@ -2,3 +2,25 @@
 /book/.cache/
 /book/tools/__pycache__/
 /book/tmp.md
+
+# Everything the build makes: the Linux tree, the Rust build, the initramfs
+# staging area, the logs.
+.build/
+target/
+
+# out-of-tree module build artifacts
+*.o
+*.ko
+*.mod
+*.mod.c
+.*.cmd
+Module.symvers
+modules.order
+endovisor/image.o_shipped
+
+# the tenant programs, assembled next to the kernels that include_bytes! them
+kernels/hello/hello
+kernels/probe/probe
+kernels/yield/yield
+kernels/sched/sched
+kernels/mem/mem

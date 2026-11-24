@@ -2,7 +2,7 @@
 
 This chapter reads the kernel the book is built around: Asterinas's teaching example, a kernel in about a hundred lines of safe Rust.
 
-The kernel is never edited. It is in this repository as `prototype/kernels/hello/src/lib.rs`. Before every build of the image, the build compares it byte for byte with a copy of the original, taken from the Asterinas tree at commit `ab9a4cfdc`. That it needs no edit to run inside Linux is the claim the rest of the book makes good.
+The kernel is never edited. It is in this repository as `kernels/hello/src/lib.rs`. Before every build of the image, the build compares it byte for byte with a copy of the original, taken from the Asterinas tree at commit `ab9a4cfdc`. That it needs no edit to run inside Linux is the claim the rest of the book makes good.
 
 The excerpts below drop only the file's comments and imports; of what the imports bring, `align_up` comes from the small `align_ext` crate, and `println!` is OSTD's, writing to the console.
 
@@ -14,7 +14,7 @@ First comes the user program the kernel runs, then the kernel itself in four pie
 
 The kernel runs one user program, a few lines of assembly, given here in full apart from its license line:
 
-*Unchanged: `prototype/kernels/hello/hello.S`.*
+*Unchanged: `kernels/hello/hello.S`.*
 
 ```asm
 .global _start                      # entry point
@@ -42,7 +42,7 @@ The kernel places the program in memory rather than loading it. A real kernel re
 
 ## Piece 1: main
 
-*Unchanged: `prototype/kernels/hello/src/lib.rs`.*
+*Unchanged: `kernels/hello/src/lib.rs`.*
 
 ```rust
 #[ostd::main]
@@ -63,7 +63,7 @@ The address space `main` activates is still active when the task runs. `main` ru
 
 ## Piece 2: building the address space
 
-*Simplified from `prototype/kernels/hello/src/lib.rs`: `create_vm_space`.*
+*Simplified from `kernels/hello/src/lib.rs`: `create_vm_space`.*
 
 ```rust
 fn create_vm_space(program: &[u8]) -> VmSpace {
@@ -105,7 +105,7 @@ The cursor holds the range locked while it exists, so two parts of a kernel cann
 
 ## Piece 3: the task and the loop
 
-*Simplified from `prototype/kernels/hello/src/lib.rs`: `create_user_task`, `create_user_context`.*
+*Simplified from `kernels/hello/src/lib.rs`: `create_user_task`, `create_user_context`.*
 
 ```rust
 fn create_user_task(vm_space: Arc<VmSpace>) -> Arc<Task> {
@@ -173,7 +173,7 @@ sequenceDiagram
 
 ## Piece 4: the system calls
 
-*Simplified from `prototype/kernels/hello/src/lib.rs`: `handle_syscall`.*
+*Simplified from `kernels/hello/src/lib.rs`: `handle_syscall`.*
 
 ```rust
 fn handle_syscall(user_context: &mut UserContext, vm_space: &VmSpace) {

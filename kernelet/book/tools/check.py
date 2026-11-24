@@ -11,17 +11,17 @@ It fails, with a line per problem, if:
   - a proposal filename, title, or table-of-contents entry lacks its submission date;
   - a code caption names a file of the companion prototype that does not exist, or an
     identifier that does not appear in that file. A caption is any line that holds a code
-    span starting with `prototype/`; every other code span on that line that looks like an
+    span naming a source path; every other code span on that line that looks like an
     identifier (`klet_enter`, `VmSpace::new`, `vm_map()`) is looked for in the named file(s).
     Only caption lines are checked: a line beginning with `*Simplified from`, `*Unchanged from`,
     `*Unchanged:` or `*From`.
 
 So a sentence such as
 
-    *Simplified from `prototype/endovisor/carrier.c`: `klet_on_syscall` and `klet_enter`.*
+    *Simplified from `endovisor/carrier.c`: `klet_on_syscall` and `klet_enter`.*
 
 is a promise the checker keeps: the file exists, and both names are in it.
-References in prose to generated logs under prototype/.build/ are provenance,
+References in prose to generated logs under .build/ are provenance,
 not prerequisites for building the book; source captions are always checked.
 """
 
@@ -41,6 +41,7 @@ SUMMARY_PREFIX_RE = re.compile(r"^\[([^\]]*)\]\(([^)]+)\)\s*$")
 CODE_SPAN_RE = re.compile(r"`([^`]+)`")
 IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*(?:\(\))?$")
 CAPTION_RE = re.compile(r"^\s*\*(Simplified from|Unchanged from|Unchanged:|From) ")
+SOURCE_DIRS = ("endovisor/", "host/", "kernels/", "vostd/", "linux/", "tools/", "bench/")
 ALLOWED_EXTERNAL = ("https://elixir.bootlin.com/linux/v6.12/",)
 
 
@@ -169,8 +170,8 @@ def main():
             # captions promise that their files and identifiers already exist.
             if proposal_area and not CAPTION_RE.match(line):
                 continue
-            files = [s for s in spans if s.startswith("prototype/") and
-                     (CAPTION_RE.match(line) or not s.startswith("prototype/.build/"))]
+            files = [s for s in spans if s.startswith(SOURCE_DIRS) or
+                     (CAPTION_RE.match(line) and s.startswith(".build/"))]
             bodies = []
             for fspan in files:
                 fpath = os.path.join(ROOT, fspan)
@@ -179,10 +180,12 @@ def main():
                 elif os.path.isfile(fpath):
                     with open(fpath, encoding="utf-8", errors="replace") as f:
                         bodies.append(f.read())
+            if CAPTION_RE.match(line) and not files:
+                problems.append(f"{rel}:{lineno}: a source caption must name a file")
             if not files or not CAPTION_RE.match(line):
                 continue
             for s in spans:
-                if s.startswith("prototype/") or not IDENT_RE.match(s):
+                if not IDENT_RE.match(s):
                     continue
                 n_refs += 1
                 found = any(
@@ -201,7 +204,7 @@ def main():
         for i, line in enumerate(tl):
             if not re.match(r"^\s*\*Unchanged( from|:) ", line):
                 continue
-            files = [s for s in CODE_SPAN_RE.findall(line) if s.startswith("prototype/")]
+            files = [s for s in CODE_SPAN_RE.findall(line) if s.startswith(SOURCE_DIRS)]
             if len(files) != 1:
                 problems.append(f"{rel}:{i+1}: an Unchanged caption must name exactly one file")
                 continue

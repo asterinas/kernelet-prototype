@@ -18,7 +18,7 @@ Start with [Why a kernel of your own](guides/why-a-kernel-of-your-own.md) to und
 
 The companion prototype patches and extends Linux. With those changes small Rust kernels written against OSTD, the framework at the bottom of the Rust kernel Asterinas, can run inside Linux, scheduled and stopped by Linux without Linux's own code needing to understand the kernel it runs.
 
-By the end you will know how every part of that prototype works, down to the C and Rust that do it. You will also have run it; the prototype's README says how.
+By the end you will know how every part of that prototype works, down to the C and Rust that do it. You will also have run it; the [implementation guide](https://github.com/asterinas/kernelet-prototype/blob/main/kernelet/IMPLEMENTATION.md) says how.
 
 ## Design explanations and interface specifications
 
@@ -42,11 +42,11 @@ If you already know a box's topic, you can continue with the main text. The same
 
 ## Code excerpts
 
-Code excerpts in the accepted design chapters come from `kernelet/prototype/`. Source paths in their captions are relative to `kernelet/`, even though the book's source lives in `kernelet/book/`. Design proposals may also show proposed code; they must distinguish it from code already in the prototype.
+Source paths in code captions are relative to `kernelet/`. Design proposals may also show proposed code; they must distinguish it from code already in the prototype.
 
 A caption under each excerpt names the file it comes from and, for a simplified excerpt, the functions it shows, like this:
 
-*Simplified from `prototype/linux/endovisor/switch.S`: `klet_switch`.*
+*Simplified from `endovisor/switch.S`: `klet_switch`.*
 
 The caption's first word says how the block differs from the file. "Simplified" means that logging, counters, error paths and comments have been cut so that the mechanism fits on the page. "Unchanged" means that the block is copied from the file verbatim.
 

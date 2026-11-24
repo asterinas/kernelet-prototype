@@ -3,7 +3,7 @@
 .content figure.diagram { text-align: center; }
 .content figure.diagram svg { max-width: 100%; height: auto; }
 .content figcaption { font-size: 0.9em; color: var(--fg); opacity: 0.8; margin-top: 0.4em; text-align: center; }
-/* The caption that precedes every code excerpt: "Simplified from prototype/…". */
+/* The caption that precedes every code excerpt: "Simplified from endovisor/…". */
 .content p.src, .content p:has(> em.src) { margin-bottom: 0.2em; }
 .content p > em:first-child:has(> code:first-child) { opacity: 0.85; }
 .content table { margin: 1em auto; }

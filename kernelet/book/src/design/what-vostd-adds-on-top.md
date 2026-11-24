@@ -6,7 +6,7 @@ This chapter is about what vOSTD must do for the kernel proper that Linux does n
 
 vOSTD answers a cursor's questions by reading Linux's page table itself, through the direct map, from the root whose physical address the space's record holds. The kernel proper asks a cursor what is at an address (`query`), where the next mapped page is (`find_next`), and how many pages an `unmap` removed; on a machine OSTD reads its own page table for these. It is the walk a processor does, in software, four dependent loads:
 
-*Simplified from `prototype/vostd/src/mm/page_table.rs`: `read_entry`, `child`, `leaf_of`, `walk`.*
+*Simplified from `vostd/src/mm/page_table.rs`: `read_entry`, `child`, `leaf_of`, `walk`.*
 
 ```rust
 fn read_entry(node: Paddr, idx: usize) -> u64 {
@@ -64,7 +64,7 @@ On a bad address, vOSTD returns the page-fault error at once, where OSTD would f
 
 Returning the error is enough for kernels that map eagerly, not for one that maps on demand. Asterinas's full kernel proper maps on demand, so before it can run as a kernelet vOSTD must call its handler outside the read section described below and walk again. This prototype does not do that.
 
-*Simplified from `prototype/vostd/src/mm/io.rs`: `Region`, `resolve`, `copy_regions`, `copy_opaque`.*
+*Simplified from `vostd/src/mm/io.rs`: `Region`, `resolve`, `copy_regions`, `copy_opaque`.*
 
 ```rust
 enum Region {
@@ -115,7 +115,7 @@ Inside Linux, vOSTD counts each Linux entry as holding the reference that OSTD's
 
 The reference changes hands with the entry. `map` turns the handle into a raw address after the service succeeds, so the reference passes to the entry only once the entry exists. `unmap` reads the entries back before the service clears them. It turns each address into a handle again and drops it after the wait described below.
 
-*Simplified from `prototype/vostd/src/mm/vm_space.rs` and `prototype/vostd/src/mm/frame.rs`: `CursorMut::map`, `CursorMut::unmap`, `Frame::into_raw`, `Frame::from_raw`.*
+*Simplified from `vostd/src/mm/vm_space.rs` and `vostd/src/mm/frame.rs`: `CursorMut::map`, `CursorMut::unmap`, `Frame::into_raw`, `Frame::from_raw`.*
 
 ```rust
 pub fn map(&mut self, frame: UFrame, prop: PageProperty) {
@@ -170,7 +170,7 @@ The lock is sixteen 64-bit words in the space's shared record. Each 2 MiB region
 
 A cursor takes every word its range touches, exclusively for a `cursor_mut` and shared for a `cursor`. It takes them in ascending order, a total order, so two cursors cannot deadlock. It releases them when it is dropped. Uncontended, taking a word is one compare-and-swap on the shared record and no crossing.
 
-*Simplified from `prototype/vostd/src/mm/vm_space.rs`: `lock_word`, `unlock_word`.*
+*Simplified from `vostd/src/mm/vm_space.rs`: `lock_word`, `unlock_word`.*
 
 ```rust
 fn lock_word(&self, idx: usize, exclusive: bool) {
@@ -213,7 +213,7 @@ Linux has no usable encoding for them in this area. On a Linux built with NUMA b
 
 The set stands in for the table wherever a page has no entry. It is an ordered map from address to frame and property, in the kernelet's heap (Linux's `kmalloc`, charged to the sandbox). It holds the frame's reference exactly as an entry would. It is under the range lock, which orders cursors on one region, and a spin lock of its own, because cursors on different regions share one map; the lock is taken per statement, never across a service. `query`, `find_next`, `protect_next` and `unmap` consult the set beside the table:
 
-*Simplified from `prototype/vostd/src/mm/vm_space.rs`: `Slot`, `slot`, `protect_next`.*
+*Simplified from `vostd/src/mm/vm_space.rs`: `Slot`, `slot`, `protect_next`.*
 
 ```rust
 enum Slot { Table(page_table::Leaf), Withheld(Paddr, PageProperty) }
@@ -253,7 +253,7 @@ The drain is not prompt, but it is bounded. A sandbox that never idles keeps its
 
 The drain unmaps the whole space, which flushes and releases every frame, the withheld set's included, and then calls `vm_destroy`.
 
-*Simplified from `prototype/vostd/src/mm/vm_space.rs`: `Drop`, `retire::drain_if_safe`, `retire::destroy`.*
+*Simplified from `vostd/src/mm/vm_space.rs`: `Drop`, `retire::drain_if_safe`, `retire::destroy`.*
 
 ```rust
 impl Drop for VmSpace {
@@ -298,7 +298,7 @@ vOSTD asserts the rule before every sleeping memory service, with a count of spi
 
 The heap services break rule 2, a known gap that costs latency, not soundness. They may sleep inside `kmalloc`, carry no assertion, and are called under spin locks, the withheld set's insert among them. By rule 4 that costs latency only: a virtual CPU that wants the lock spins, and hands its turn on through `vcpu_on_spin`, for as long as `kmalloc` sleeps.
 
-*Simplified from `prototype/vostd/src/mm/backend.rs` and `prototype/vostd/src/sync/spin.rs`: `sleeping`, `Backend::map`, `assert_may_sleep`.*
+*Simplified from `vostd/src/mm/backend.rs` and `vostd/src/sync/spin.rs`: `sleeping`, `Backend::map`, `assert_may_sleep`.*
 
 ```rust
 fn sleeping(name: &str) {                                  // every sleeping memory service's stub begins here

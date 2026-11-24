@@ -5,8 +5,8 @@ The previous chapter was the view from above the framework: a kernel that alloca
 A kernelet image is two layers of code compiled into one file, held together by a third thing, an interface.
 
 1. **The kernel proper**, the hundred-line kernel of the last chapter: safe Rust, never edited.
-2. **vOSTD**, a Rust crate whose library name is `ostd`, so that the kernel proper's `use ostd::...` lines resolve to it. It offers every type and function the kernel proper uses, with the same names and signatures as the real OSTD. It is in `prototype/vostd/`.
-3. **The image ABI** (an *application binary interface* is the exact layout of what two separately compiled pieces of code pass each other), a few C-layout structures that both vOSTD and the endovisor know: what the host tells the kernelet at start, which functions the kernelet may call, and which functions the host may call. It is in `prototype/vostd/src/abi.rs` on the Rust side and `prototype/linux/endovisor/kernelet.h` on the C side, and the two must agree byte for byte.
+2. **vOSTD**, a Rust crate whose library name is `ostd`, so that the kernel proper's `use ostd::...` lines resolve to it. It offers every type and function the kernel proper uses, with the same names and signatures as the real OSTD. It is in `vostd/`.
+3. **The image ABI** (an *application binary interface* is the exact layout of what two separately compiled pieces of code pass each other), a few C-layout structures that both vOSTD and the endovisor know: what the host tells the kernelet at start, which functions the kernelet may call, and which functions the host may call. It is in `vostd/src/abi.rs` on the Rust side and `endovisor/kernelet.h` on the C side, and the two must agree byte for byte.
 
 The first two are the image's contents; the third is this chapter's subject.
 
@@ -24,7 +24,7 @@ The registered kind owns one physical copy of the code and read-only data and a 
 
 The image ABI has three structures. Here they are, trimmed to what this chapter can explain; the fields left out belong to later chapters.
 
-*Simplified from `prototype/vostd/src/abi.rs`: `BootArgs`, `Services`, `EntryTable`.*
+*Simplified from `vostd/src/abi.rs`: `BootArgs`, `Services`, `EntryTable`.*
 
 ```rust
 /// What the endovisor tells the kernelet about the world it was given.
@@ -79,7 +79,7 @@ Two rules shape every service. Arguments are integers or pointers into the kerne
 
 vOSTD defines the entry table under the symbol `kernelet_entry_table`; the final linker records its address in ELF's `e_entry` field:
 
-*Simplified from `prototype/vostd/src/abi.rs`: `kernelet_entry_table`.*
+*Simplified from `vostd/src/abi.rs`: `kernelet_entry_table`.*
 
 ```rust
 #[no_mangle]
@@ -97,7 +97,7 @@ The endovisor checks the entry table's `abi_version` against its own when an ima
 
 The endovisor gives a kernelet a **grant**: one physically contiguous block of RAM, the `memory_initial` of the holder's create request (4 MiB from the prototype's holder; a request is rounded up to 2 MiB and may not exceed 4 MiB), taken from Linux's page allocator when the sandbox starts, charged to the sandbox's control group, and described in the boot arguments by its physical address and length.
 
-*Simplified from `prototype/linux/endovisor/sandbox.c`: `klet_sandbox_start`.*
+*Simplified from `endovisor/sandbox.c`: `klet_sandbox_start`.*
 
 ```c
 int klet_sandbox_start(struct klet_inst *inst)
@@ -129,7 +129,7 @@ int klet_sandbox_start(struct klet_inst *inst)
 
 vOSTD's frame allocator plays over the grant the part OSTD's plays over a machine's RAM, more simply: where the allocator shipped with OSTD is a buddy system, vOSTD's is a bitmap with one bit per 4 KiB frame, a first-fit search for `n` contiguous free frames, and a reference count per frame (the count matters once tenant pages sit on Linux's page tables). When the kernel proper's `FrameAllocOptions` asks for a segment, this is what answers.
 
-*Simplified from `prototype/vostd/src/mm/frame.rs`: `alloc`, `FrameAllocOptions`.*
+*Simplified from `vostd/src/mm/frame.rs`: `alloc`, `FrameAllocOptions`.*
 
 ```rust
 pub(crate) fn alloc(nframes: usize) -> Option<Paddr> {
@@ -152,7 +152,7 @@ pub(crate) fn alloc(nframes: usize) -> Option<Paddr> {
 
 And the translation from a frame's physical address to something the kernelet can read and write is the same one addition Linux uses, with the base the boot arguments supplied:
 
-*Unchanged from `prototype/vostd/src/mm/mod.rs`: `paddr_to_vaddr`.*
+*Unchanged from `vostd/src/mm/mod.rs`: `paddr_to_vaddr`.*
 
 ```rust
 pub(crate) fn paddr_to_vaddr(paddr: Paddr) -> usize {
@@ -168,7 +168,7 @@ Three of the services need no more than a sentence each, and the hundred-line ke
 
 **The heap.** Rust's `Vec`, `Box` and `Arc` need a heap. vOSTD's is the host's: a global allocator that forwards each allocation to the services `mem_alloc` and `mem_free`, which the endovisor implements with Linux's `kmalloc` and `kfree`.
 
-*Simplified from `prototype/vostd/src/mm/heap.rs`: `HostHeap`.*
+*Simplified from `vostd/src/mm/heap.rs`: `HostHeap`.*
 
 ```rust
 struct HostHeap;
@@ -194,7 +194,7 @@ static HEAP: HostHeap = HostHeap;
 
 The endovisor enters the image at `kernelet_entry` with the two tables. vOSTD records them, sets up what the chapter has described, and calls the kernel proper's `main`.
 
-*Simplified from `prototype/vostd/src/lib.rs`: `kernelet_entry`.*
+*Simplified from `vostd/src/lib.rs`: `kernelet_entry`.*
 
 ```rust
 pub(crate) unsafe extern "C" fn kernelet_entry(boot: *const BootArgs, svc: *const Services) {

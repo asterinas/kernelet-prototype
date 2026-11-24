@@ -483,7 +483,7 @@ A tenant system call uses these prototype mechanisms.
 - **Syscall hook.** Our Linux patch adds this hook after seccomp in the system-call entry. Linux calls it for each carrier syscall. The hook passes the call to the kernelet, and Linux skips its own system-call table ([Carrier hooks and patch overview](../carrier-hooks.md)).
 - **`execute`.** OSTD's interface for running user code, called in a loop by the kernel proper. `execute` enters user mode and returns on a system call, exception, or event for the kernel proper. The kernel proper handles the event and calls `execute` again ([Into user mode and back](../into-user-mode-and-back.md)). The hundred-line kernel uses this loop:
 
-  *Simplified from `prototype/kernels/hello/src/lib.rs`: `create_user_task`.*
+  *Simplified from `kernels/hello/src/lib.rs`: `create_user_task`.*
 
   ```rust
   let mut user_mode = UserMode::new(create_user_context());

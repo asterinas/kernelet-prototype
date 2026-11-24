@@ -31,7 +31,7 @@ A **preemption notifier** ([`preempt_notifier_register()`](https://elixir.bootli
 
 The **watch timer**, a pinned, hard, one-millisecond `hrtimer` on each processor, is armed while the task running there is the carrier of a virtual CPU, and for at most one more period after it leaves. Each carrier registers a preemption notifier when it starts. The notifier's switch-in callback arms the timer of whatever processor the carrier has just landed on, and so does every entry into kernelet code and every return from a service, which no switch-in need precede. The timer's own callback re-arms itself if it interrupted the carrier of a virtual CPU of a live sandbox, and stops otherwise. So a carrier that Linux migrates is watched wherever it lands, and a processor that has no carrier is soon unwatched.
 
-*Simplified from `prototype/linux/endovisor/watch.c` and `prototype/linux/endovisor/sched.c`: `klet_watch_arm`, `klet_sched_in`.*
+*Simplified from `endovisor/watch.c` and `endovisor/sched.c`: `klet_watch_arm`, `klet_sched_in`.*
 
 ```c
 static void klet_sched_in(struct preempt_notifier *pn, int cpu)   /* Linux just put this carrier on a processor */
@@ -50,7 +50,7 @@ void klet_watch_arm(struct klet_carrier *c)
 
 Every time a period expires, the callback raises TICK and then decides how to deliver whatever is pending:
 
-*Simplified from `prototype/linux/endovisor/watch.c`: `klet_watch_fn`.*
+*Simplified from `endovisor/watch.c`: `klet_watch_fn`.*
 
 ```c
 static enum hrtimer_restart klet_watch_fn(struct hrtimer *timer)
@@ -95,7 +95,7 @@ The callback's two tests keep it from redirecting anything but kernelet code. `k
 
 When the carrier is in kernelet code outside a critical section, the endovisor delivers at once, as a machine would, by changing one saved register:
 
-*Simplified from `prototype/linux/endovisor/watch.c`: `klet_virq_redirect`.*
+*Simplified from `endovisor/watch.c`: `klet_virq_redirect`.*
 
 ```c
 bool klet_virq_redirect(struct klet_carrier *c, struct pt_regs *regs)
@@ -127,7 +127,7 @@ Two build settings keep the stub short. The kernelet is built without vector ins
 
 The excerpt is in Intel syntax, destination first, as Rust's `global_asm!` has it; chapter 6's switch was in AT&T syntax, the GNU assembler's default, source first.
 
-*Simplified from `prototype/vostd/src/vcpu.rs`: `klet_virq_entry`, `klet_virq_body`.*
+*Simplified from `vostd/src/vcpu.rs`: `klet_virq_entry`, `klet_virq_body`.*
 
 ```asm
 klet_virq_entry:
@@ -210,7 +210,7 @@ The guard word is updated only by its own virtual CPU, with single read-modify-w
 
 When a critical section ends, vOSTD delivers whatever was left pending in it, whenever it arrived. Two places check: the interrupts-off guard when it unmasks, and the drop of the last preemption guard, for a bit that arrived under the guard, in kernelet code or in a service. Only the upcall checks the stack's headroom; these paths run the same handlers as a function call on whatever stack the task is on. The unmask:
 
-*Simplified from `prototype/vostd/src/task/preempt/cpu_local.rs` and `prototype/vostd/src/vcpu.rs`: `irq_unmask`, `deliver_if_pending`, `handle_virq`.*
+*Simplified from `vostd/src/task/preempt/cpu_local.rs` and `vostd/src/vcpu.rs`: `irq_unmask`, `deliver_if_pending`, `handle_virq`.*
 
 ```rust
 pub(crate) fn irq_unmask() {
@@ -252,7 +252,7 @@ Neither the flag nor the bit can be lost in a race. A flag set while the hook is
 
 A kick to kernelet code on another processor makes that processor's watch timer fire at once, through an inter-processor interrupt, instead of waiting up to a millisecond for its next tick. The endovisor sends it with [`smp_call_function_single()`](https://elixir.bootlin.com/linux/v6.12/source/kernel/smp.c), which runs a function on a named processor, in interrupt context there, through an inter-processor interrupt; the last argument, 0, means the caller does not wait. The function it runs there cannot redirect anything itself, because that kind of interrupt does not publish the interrupted registers; what it can do is restart the watch timer with zero delay (`klet_watch_fire_now`), so that the timer interrupt, whose callback does see the registers, arrives as soon as the cross-processor call returns, and delivers the kick:
 
-*Simplified from `prototype/linux/endovisor/sched.c`: `klet_kick_remote`, `klet_kick_ipi`.*
+*Simplified from `endovisor/sched.c`: `klet_kick_remote`, `klet_kick_ipi`.*
 
 ```c
 void klet_kick_remote(struct klet_carrier *c)

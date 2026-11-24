@@ -34,7 +34,7 @@ A **virtual CPU** is one of the processors a sandbox is given when it is created
 
 vOSTD's task layer is the real OSTD's code: a task is a function, a stack and a saved register set; switching tasks saves one set of callee-saved registers and loads another; waiting is a matter of OSTD's own wait queues. None of it involves Linux, which never sees a kernelet task at all. The two places where the machine shows through are the stack and the context switch, and both are familiar from chapter 6.
 
-*Simplified from `prototype/vostd/src/task/mod.rs` and `prototype/vostd/src/task/kernel_stack.rs`: `build`, `KernelStack`.*
+*Simplified from `vostd/src/task/mod.rs` and `vostd/src/task/kernel_stack.rs`: `build`, `KernelStack`.*
 
 ```rust
 pub fn build(self) -> Result<Task> {
@@ -58,13 +58,13 @@ The context switch is OSTD's `switch.S`, byte for byte: save eight words (the st
 
 The kernel proper chooses the policy. It implements OSTD's `Scheduler` trait, a run queue per CPU with `enqueue`, `pick_next` and `update_current`, and registers it with `inject_scheduler` before it creates any task; OSTD calls those functions without knowing the type, which is how a scheduler written for a bare-metal kernel runs unchanged in a kernelet. If the kernel proper registers none, OSTD's own first-in-first-out scheduler is used, which is what the hundred-line kernel gets.
 
-A test shows that the policy is the kernelet's and not Linux's. The test kernel in `prototype/kernels/sched/src/lib.rs` injects a strict-priority scheduler with round-robin inside each level, a policy that Linux's fair scheduler, under which every carrier runs, would never produce, and the test `make sched-policy` checks every one of its switches against a model of the policy.
+A test shows that the policy is the kernelet's and not Linux's. The test kernel in `kernels/sched/src/lib.rs` injects a strict-priority scheduler with round-robin inside each level, a policy that Linux's fair scheduler, under which every carrier runs, would never produce, and the test `make sched-policy` checks every one of its switches against a model of the policy.
 
 ## The virtual CPU record
 
 A carrier and the kernelet need a small amount of shared state per virtual CPU, and they need the kernelet to find it fast, since "which CPU am I on" is on the hottest path a kernel has. The **virtual CPU record** is that state: a C-layout structure the endovisor owns and both sides write.
 
-*Simplified from `prototype/linux/endovisor/kernelet.h`: `klet_vcpu_rec`.*
+*Simplified from `endovisor/kernelet.h`: `klet_vcpu_rec`.*
 
 ```c
 struct klet_vcpu_rec {
@@ -91,7 +91,7 @@ The record's place is what makes it fast to find: it is embedded in the endoviso
 
 When a sandbox starts, the endovisor publishes the offsets that lead from `%gs` to the record. It computes the `%gs`-relative offset of the current-task pointer, checks it by reading the pointer back and comparing it with `current`, and publishes it in the boot arguments together with the offset of the hooks pointer inside `task_struct`, the offset of the record from the hooks, and the offset of Linux's preemption count. vOSTD then finds its record with two dependent loads and no call:
 
-*Simplified from `prototype/vostd/src/vcpu.rs`: `vrec`.*
+*Simplified from `vostd/src/vcpu.rs`: `vrec`.*
 
 ```rust
 pub(crate) fn vrec() -> &'static VcpuRec {
@@ -118,7 +118,7 @@ Virtual CPU 0 starts with the sandbox, and the others start when the kernel prop
 
 A virtual CPU with nothing to run calls `vcpu_idle`, and its carrier sleeps in Linux until something is pending. Spinning would burn the sandbox's share of a real processor for nothing. The sleep is *killable*, so that `SIGKILL` ends it, which is how a sandbox is stopped.
 
-*Simplified from `prototype/linux/endovisor/carrier.c`: `klet_do_vcpu_idle`.*
+*Simplified from `endovisor/carrier.c`: `klet_do_vcpu_idle`.*
 
 ```c
 static void klet_do_vcpu_idle(struct klet_carrier *c, u64 deadline_ns)
@@ -138,7 +138,7 @@ The order of the first three lines is the one every Linux sleep uses so that no 
 
 The scheduler's code shows where both of the remaining services are called: `reschedule` idles this virtual CPU when its run queue is empty, and `set_need_preempt` kicks another. `reschedule` takes the scheduling decision as a closure, so that `yield_now`, `park_current` and the others share its loop and differ only in the decision.
 
-*Simplified from `prototype/vostd/src/task/scheduler/mod.rs`: `reschedule`, `set_need_preempt`.*
+*Simplified from `vostd/src/task/scheduler/mod.rs`: `reschedule`, `set_need_preempt`.*
 
 ```rust
 fn set_need_preempt(cpu_id: CpuId) {

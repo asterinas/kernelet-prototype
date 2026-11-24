@@ -22,7 +22,7 @@ The stub fits where the upcall does not. The upcall needs 32 KiB left on the sta
 
 The watch callback's non-critical branch becomes the following, which replaces chapter 9's call to `klet_virq_redirect`. `again` is the callback's last lines, which re-arm the timer and return:
 
-*Simplified from `prototype/linux/endovisor/watch.c`: `klet_watch_fn`.*
+*Simplified from `endovisor/watch.c`: `klet_watch_fn`.*
 
 ```c
 	if (!klet_critical(c)) {
@@ -39,7 +39,7 @@ The watch callback's non-critical branch becomes the following, which replaces c
 
 The stub saves every register and the flags on the kernelet stack, as the upcall does, then hops to the Linux stack exactly like a service call and reschedules there:
 
-*Simplified from `prototype/linux/endovisor/switch.S` and `prototype/linux/endovisor/carrier.c`: `klet_yield_stub`, `klet_yield_body`, `klet_do_yield`.*
+*Simplified from `endovisor/switch.S` and `endovisor/carrier.c`: `klet_yield_stub`, `klet_yield_body`, `klet_do_yield`.*
 
 ```asm
 klet_yield_stub:
@@ -82,7 +82,7 @@ The stub never returns into a kernelet that died while the carrier was away. `kl
 
 `klet_do_yield` must yield under every model, and it serves every yield: the upcall's, the stub's, and the forced one of Problem 3. `cond_resched()` does nothing under the full model. So when it has not rescheduled and Linux still wants the processor, `schedule()` is called directly.
 
-The test `make yield` shows the remedy working. The test kernel in `prototype/kernels/yield/src/lib.rs` computes for seconds. The test runs it twice on a kernel booted with `preempt=none`, with a competing host process pinned to the same processor: once with the watch timer turned off (the module parameter `klet_watch=0`) and once with it on. With the timer off, the competitor gets nothing for the kernelet's whole computation, 4.4 s in the last run. The competitor prints a progress line about every 250 ms, so the test resolves nothing finer; with the timer on, the longest gap between two lines was 271 ms in the last run, barely more than the print interval, and the test asserts under a second.
+The test `make yield` shows the remedy working. The test kernel in `kernels/yield/src/lib.rs` computes for seconds. The test runs it twice on a kernel booted with `preempt=none`, with a competing host process pinned to the same processor: once with the watch timer turned off (the module parameter `klet_watch=0`) and once with it on. With the timer off, the competitor gets nothing for the kernelet's whole computation, 4.4 s in the last run. The competitor prints a progress line about every 250 ms, so the test resolves nothing finer; with the timer on, the longest gap between two lines was 271 ms in the last run, barely more than the print interval, and the test asserts under a second.
 
 The test also shows that the upcall loses no register: a checksum the kernel computes over a long run in ten live variables comes out identical, and equal to a user-space reference, whether the kernelet was diverted through the upcall thousands of times or never.
 
@@ -106,7 +106,7 @@ vOSTD mirrors entry and exit with Linux's own instructions: an increment on entr
 
 Every processor's count gets back exactly what it was given. Linux does not move a task whose count is raised. Every path on which the carrier can leave the processor takes the increment out first and puts it back wherever the carrier resumes.
 
-*Simplified from `prototype/vostd/src/vcpu.rs` and `prototype/vostd/src/task/preempt/cpu_local.rs`: `host_preempt_inc`, `host_preempt_dec_and_test`, `inc_guard_count`, `dec_guard_count`.*
+*Simplified from `vostd/src/vcpu.rs` and `vostd/src/task/preempt/cpu_local.rs`: `host_preempt_inc`, `host_preempt_dec_and_test`, `inc_guard_count`, `dec_guard_count`.*
 
 ```rust
 pub(crate) fn host_preempt_inc() {
@@ -150,7 +150,7 @@ The flag is set *after* the increment and cleared *before* the decrement, so tha
 
 The endovisor measures the amount itself: it recorded Linux's count when the carrier entered kernelet code, and the excess over that is the kernelet's. It does not ask the kernelet.
 
-*Simplified from `prototype/linux/endovisor/carrier.c`: `klet_mirror_in`, `klet_mirror_out`, `klet_svc_body`.*
+*Simplified from `endovisor/carrier.c`: `klet_mirror_in`, `klet_mirror_out`, `klet_svc_body`.*
 
 ```c
 static void klet_mirror_in(struct klet_carrier *c)     /* on the way into kernelet code */
@@ -195,7 +195,7 @@ The watch timer bounds the deferral at two of its one-millisecond periods when t
 
 In the callback, the bound replaces chapter 9's last branch. Before it, a requested firing goes straight to `again`, and so does a tick that finds no `need_resched`, which first drops the note:
 
-*Simplified from `prototype/linux/endovisor/watch.c`: `klet_watch_fn`.*
+*Simplified from `endovisor/watch.c`: `klet_watch_fn`.*
 
 ```c
 	/* a critical section, and Linux wants the processor */
@@ -247,7 +247,7 @@ A spin lock that keeps failing may be waiting for a lock holder that is off its 
 
 The endovisor answers the hint with a directed yield in the shape of KVM's, kept cheap. It applies a limit of one call per jiffy, Linux's own scheduler tick (4 ms in this build, HZ=250), per virtual CPU. It picks the first sibling carrier of the same sandbox that is runnable but not running and passes it to `yield_to()` with the second argument false, and failing that calls `cond_resched()`, which gives the processor up only if Linux already wants it, and under the full model does nothing.
 
-*Simplified from `prototype/vostd/src/sync/spin.rs`: `acquire_lock`.*
+*Simplified from `vostd/src/sync/spin.rs`: `acquire_lock`.*
 
 ```rust
 fn acquire_lock(&self) {

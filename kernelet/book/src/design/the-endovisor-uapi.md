@@ -1,6 +1,6 @@
 # The endovisor UAPI
 
-The endovisor's user-space interface, its UAPI, is one header, `prototype/linux/endovisor/uapi/endovisor.h`: one device node, three kinds of file descriptor, and one rule about who creates the tasks. Linux calls the set of system calls, device nodes and file formats that user space may use its **UAPI**, the user-space application programming interface, and keeps the headers that define it in a directory of that name. Everything the rest of the book builds is behind this interface, and nothing a tenant does ever touches it.
+The endovisor's user-space interface, its UAPI, is one header, `endovisor/uapi/endovisor.h`: one device node, three kinds of file descriptor, and one rule about who creates the tasks. Linux calls the set of system calls, device nodes and file formats that user space may use its **UAPI**, the user-space application programming interface, and keeps the headers that define it in a directory of that name. Everything the rest of the book builds is behind this interface, and nothing a tenant does ever touches it.
 
 This chapter first shows the interface in use, by the prototype's own holder program, then says why it has the shape it has, and then specifies every operation.
 
@@ -18,7 +18,7 @@ A descriptor need not come from a file system at all: a module can make an *anon
 
 **The operator's step.** Once per boot, someone with the right to load kernel code registers each **kernelet image** the machine will run, one file holding a compiled kernelet (its format is given with `KLET_KIND_REGISTER` below), and names it:
 
-*Simplified from `prototype/host/runtime/sandbox.c`: `open_system`, `register_kind`.*
+*Simplified from `host/runtime/sandbox.c`: `open_system`, `register_kind`.*
 
 ```c
 int open_system(void)
@@ -49,7 +49,7 @@ A registered image is a **kind**, and a kind is what sandboxes are made of. Regi
 
 **The holder's step.** To run a sandbox, the holder creates it, gives it its console and log, and then makes one carrier per virtual CPU:
 
-*Simplified from `prototype/host/runtime/sandbox.c`: `run_sandbox`, `wait_sandbox`.*
+*Simplified from `host/runtime/sandbox.c`: `run_sandbox`, `wait_sandbox`.*
 
 ```c
 int run_sandbox(int sys_fd, const char *name, unsigned int nr_vcpus, const char *cmdline,
@@ -100,7 +100,7 @@ int run_sandbox(int sys_fd, const char *name, unsigned int nr_vcpus, const char 
 
 The loop in the middle is the heart of the interface. A **carrier**, the [introductory guide](../guides/why-a-kernel-of-your-own.md#the-words)'s term for a Linux task that carries one of the sandbox's virtual CPUs and may run the tenant's programs, is not made by the kernel. The holder forks a child for it, the child arranges itself with ordinary system calls, and then the child *executes* a descriptor the sandbox handed out:
 
-*Simplified from `prototype/host/runtime/sandbox.c`: `start_carrier`, `join_cgroup`.*
+*Simplified from `host/runtime/sandbox.c`: `start_carrier`, `join_cgroup`.*
 
 ```c
 void start_carrier(int exec_fd, unsigned int vcpu, const struct sandbox_opts *opt)
@@ -197,7 +197,7 @@ The image contract has four requirements:
 
 The prototype rejects images requiring an ELF interpreter, external libraries, TLS, or automatic constructor and destructor execution. It also rejects unsupported dynamic relocation formats and relocations into shared pages. Common symbols must have been assigned storage by the final linker. TLS and automatic initialization are implementation restrictions rather than requirements of kernelet isolation: initialization currently runs explicitly during sandbox boot, and registration runs no image code.
 
-At registration, the loader in `prototype/linux/endovisor/image.c` validates the image and retains its shared pages and pristine data template. When a sandbox starts, it creates a mapping at the segment offsets specified by the linker, using the kind's physical pages for code and read-only data and fresh physical pages for writable data. It copies the data template, zeroes uninitialized storage, applies the private relocations and sets the mapping's permissions. The kind's shared pages stay alive until every sandbox of that kind has been destroyed and the kind is unregistered.
+At registration, the loader in `endovisor/image.c` validates the image and retains its shared pages and pristine data template. When a sandbox starts, it creates a mapping at the segment offsets specified by the linker, using the kind's physical pages for code and read-only data and fresh physical pages for writable data. It copies the data template, zeroes uninitialized storage, applies the private relocations and sets the mapping's permissions. The kind's shared pages stay alive until every sandbox of that kind has been destroyed and the kind is unregistered.
 
 These checks establish compatibility with the image contract. They do not establish that arbitrary machine code obeys the safe-Rust and vOSTD boundary. That still depends on the trusted build, which is why registering an image requires the right to load kernel code.
 
@@ -239,9 +239,9 @@ A sandbox's mapping remains valid throughout its carriers' execution. Destroying
 
 ## The operations
 
-The header `prototype/linux/endovisor/uapi/endovisor.h` is the interface's definition, and its comments are written to be the reference: for each operation they say what it does, what its arguments are, what it returns and how it fails. This section quotes the header unchanged, one operation at a time, and adds only what a header cannot carry: a figure, a Linux mechanism, and the reasons. The header opens with the three descriptors and the conventions every operation follows:
+The header `endovisor/uapi/endovisor.h` is the interface's definition, and its comments are written to be the reference: for each operation they say what it does, what its arguments are, what it returns and how it fails. This section quotes the header unchanged, one operation at a time, and adds only what a header cannot carry: a figure, a Linux mechanism, and the reasons. The header opens with the three descriptors and the conventions every operation follows:
 
-*Simplified from `prototype/linux/endovisor/uapi/endovisor.h`: the opening comment.*
+*Simplified from `endovisor/uapi/endovisor.h`: the opening comment.*
 
 ```c
 // The endovisor UAPI defines what host user space may ask of a Linux that runs kernelets.
@@ -265,7 +265,7 @@ The system descriptor is `open("/dev/endovisor")`. The node is owned by root; an
 
 #### `KLET_GET_API_VERSION`
 
-*Unchanged from `prototype/linux/endovisor/uapi/endovisor.h`: `KLET_API_VERSION`, `KLET_GET_API_VERSION`.*
+*Unchanged from `endovisor/uapi/endovisor.h`: `KLET_API_VERSION`, `KLET_GET_API_VERSION`.*
 
 ```c
 // Returned by `KLET_GET_API_VERSION`; a runtime refuses any other value.
@@ -292,7 +292,7 @@ The system descriptor is `open("/dev/endovisor")`. The node is owned by root; an
 
 #### `KLET_KIND_REGISTER`
 
-*Unchanged from `prototype/linux/endovisor/uapi/endovisor.h`: `klet_kind_register`, `KLET_KIND_REGISTER`.*
+*Unchanged from `endovisor/uapi/endovisor.h`: `klet_kind_register`, `KLET_KIND_REGISTER`.*
 
 ```c
 // The ioctl for registering a new kernelet kind by providing a new image.
@@ -343,7 +343,7 @@ The [image format and its requirements](#the-image-format-and-its-requirements) 
 
 #### `KLET_KIND_LIST`
 
-*Unchanged from `prototype/linux/endovisor/uapi/endovisor.h`: `klet_kind_info`, `klet_kind_list`, `KLET_KIND_LIST`.*
+*Unchanged from `endovisor/uapi/endovisor.h`: `klet_kind_info`, `klet_kind_list`, `KLET_KIND_LIST`.*
 
 ```c
 // The ioctl for listing registered kinds.
@@ -370,7 +370,7 @@ struct klet_kind_list {
 
 #### `KLET_KIND_UNREGISTER`
 
-*Unchanged from `prototype/linux/endovisor/uapi/endovisor.h`: `KLET_KIND_UNREGISTER`.*
+*Unchanged from `endovisor/uapi/endovisor.h`: `KLET_KIND_UNREGISTER`.*
 
 ```c
 // The ioctl for unregistering a kind and returning its pages to Linux.
@@ -387,7 +387,7 @@ struct klet_kind_list {
 #define KLET_KIND_UNREGISTER	_IOW(KLET_IOC, 0x03, __u32)
 ```
 
-*Unchanged from `prototype/linux/endovisor/uapi/endovisor.h`: `klet_create`, `KLET_CREATE`.*
+*Unchanged from `endovisor/uapi/endovisor.h`: `klet_create`, `KLET_CREATE`.*
 
 #### `KLET_CREATE`
 
@@ -450,7 +450,7 @@ struct klet_create {
 
 #### `KLET_GET_VCPU_EXEC_FD`
 
-*Unchanged from `prototype/linux/endovisor/uapi/endovisor.h`: `KLET_GET_VCPU_EXEC_FD`.*
+*Unchanged from `endovisor/uapi/endovisor.h`: `KLET_GET_VCPU_EXEC_FD`.*
 
 ```c
 // The ioctl for obtaining a virtual CPU's exec descriptor.
@@ -499,7 +499,7 @@ struct klet_create {
 
 #### `KLET_ATTACH_DEVICE`
 
-*Unchanged from `prototype/linux/endovisor/uapi/endovisor.h`: `klet_device`, `KLET_ATTACH_DEVICE`.*
+*Unchanged from `endovisor/uapi/endovisor.h`: `klet_device`, `KLET_ATTACH_DEVICE`.*
 
 ```c
 // The ioctl for attaching a virtio device backed by an open file.
@@ -536,7 +536,7 @@ struct klet_device {
 
 #### `KLET_SET_CONSOLE` and `KLET_SET_LOG`
 
-*Unchanged from `prototype/linux/endovisor/uapi/endovisor.h`: `KLET_SET_CONSOLE`, `KLET_SET_LOG`.*
+*Unchanged from `endovisor/uapi/endovisor.h`: `KLET_SET_CONSOLE`, `KLET_SET_LOG`.*
 
 ```c
 // The ioctls for setting the sandbox's console and kernel log files.
@@ -564,7 +564,7 @@ struct klet_device {
 
 #### `KLET_KILL`
 
-*Unchanged from `prototype/linux/endovisor/uapi/endovisor.h`: `KLET_KILL`.*
+*Unchanged from `endovisor/uapi/endovisor.h`: `KLET_KILL`.*
 
 ```c
 // The ioctl for marking a kernelet dying and recording the reason.
@@ -601,7 +601,7 @@ After a termination request, the sandbox exits when every carrier is gone; if it
 
 The record is a persistent result, not a stream: reads do not consume it or advance to an end-of-file condition. The descriptor is not seekable; `lseek` fails with `ESPIPE`. Each successful read returns the same complete record. The descriptor becomes readable to `poll`, `select` and `epoll` after exit and stays readable. A runtime can therefore wait for the sandbox alongside its carriers' process descriptors, then read its final result. `KLET_GET_STATS` also includes this record once its reported state is `KLET_STATE_EXITED`.
 
-*Unchanged from `prototype/linux/endovisor/uapi/endovisor.h`: `klet_exit`, `klet_end`.*
+*Unchanged from `endovisor/uapi/endovisor.h`: `klet_exit`, `klet_end`.*
 
 ```c
 // The exit record returned by `read` on a sandbox descriptor.
@@ -657,7 +657,7 @@ struct klet_exit {
 
 #### `KLET_GET_STATS`
 
-*Unchanged from `prototype/linux/endovisor/uapi/endovisor.h`: `klet_stats`, `klet_vcpu_stat`, `KLET_GET_STATS`.*
+*Unchanged from `endovisor/uapi/endovisor.h`: `klet_stats`, `klet_vcpu_stat`, `KLET_GET_STATS`.*
 
 ```c
 // The ioctl for reading a sandbox's state, exit record, counters, and virtual CPU statistics.

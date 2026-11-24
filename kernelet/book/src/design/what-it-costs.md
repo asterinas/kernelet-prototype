@@ -16,7 +16,7 @@ The endovisor's stub times the crossing, an indirect function call plus two stac
 
 So the stack switches cost about ten cycles a call, a few nanoseconds; the two figures move by several cycles from boot to boot, and their difference with them.
 
-The heap pair is two crossings, Linux's `kmalloc` and `kfree`, and the endovisor's table of blocks (chapter 3). It is timed by vOSTD with interrupts on in seven rounds of 1,000 pairs, the cheapest kept. The table costs about a hundred and twenty of those cycles: on an earlier build without the table (`prototype/.build/r5-before-serial-hello2.log`), the pair took 328.
+The heap pair is two crossings, Linux's `kmalloc` and `kfree`, and the endovisor's table of blocks (chapter 3). It is timed by vOSTD with interrupts on in seven rounds of 1,000 pairs, the cheapest kept. The table costs about a hundred and twenty of those cycles: on an earlier build without the table (`.build/r5-before-serial-hello2.log`), the pair took 328.
 
 ## Tasks
 

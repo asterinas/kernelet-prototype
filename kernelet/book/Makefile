@@ -1,5 +1,5 @@
 # Build and check Building Kernelets on Linux from this directory.
-# Generated HTML goes to build/; the companion implementation is ../prototype/.
+# Generated HTML goes to build/; the companion implementation is ../.
 MDBOOK ?= mdbook
 PYTHON ?= python3
 

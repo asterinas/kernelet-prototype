@@ -1,0 +1,19 @@
+# vOSTD: the OSTD-shaped API that the kernel proper is compiled against.
+#
+# The library is named `ostd` so that `hello` can depend on it as
+# `ostd = { package = "vostd", ... }` and keep its source byte-identical to the
+# Asterinas template.
+
+[package]
+name = "vostd"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "ostd"
+path = "src/lib.rs"
+
+[dependencies]
+ostd-macros = "0.18.1"

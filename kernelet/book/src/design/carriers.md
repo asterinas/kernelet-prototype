@@ -24,7 +24,7 @@ A sandbox is charged through its control group: every carrier is in it, so the k
 
 The endovisor's half is the binary-format handler, where the child becomes the carrier:
 
-*Simplified from `prototype/linux/endovisor/main.c`: `klet_load_binary`, `klet_empty_mm`, `klet_ignore_signals`.*
+*Simplified from `endovisor/main.c`: `klet_load_binary`, `klet_empty_mm`, `klet_ignore_signals`.*
 
 ```c
 static int klet_load_binary(struct linux_binprm *bprm)
@@ -95,7 +95,7 @@ flowchart TB
 
 The resume hook is where a new carrier enters the kernelet, once its virtual CPU may start. Its first trip through the hook finds the carrier in the state `NEW`:
 
-*Simplified from `prototype/linux/endovisor/carrier.c`: `klet_on_resume`, `klet_vcpu_await`.*
+*Simplified from `endovisor/carrier.c`: `klet_on_resume`, `klet_vcpu_await`.*
 
 ```c
 		if (c->state == KLET_NEW) {                 /* the carrier's first way out to user mode, from the exec */
@@ -138,7 +138,7 @@ The endovisor must hear of a carrier's death however it happens, because a sandb
 
 So each carrier holds, in its descriptor table, one open file of the endovisor's that nothing ever reads or writes: its **lifeline**. Its `release` is the death notice.
 
-*Simplified from `prototype/linux/endovisor/carrier.c` and `prototype/linux/endovisor/main.c`: `klet_carrier_attach`, `klet_lifeline_release`.*
+*Simplified from `endovisor/carrier.c` and `endovisor/main.c`: `klet_carrier_attach`, `klet_lifeline_release`.*
 
 ```c
 int klet_carrier_attach(struct klet_carrier *c)

@@ -6,7 +6,7 @@ Everything is now in place for the hundred-line kernel to run its program. The k
 
 `UserContext::execute` in vOSTD, which `UserMode::execute` calls, keeps OSTD's signature and loop: where OSTD enters user mode with its own assembly and decodes the trap number, vOSTD calls `user_run` with a pointer to the context, and interprets the number it returns.
 
-*Simplified from `prototype/vostd/src/arch/cpu/context.rs`: `execute`.*
+*Simplified from `vostd/src/arch/cpu/context.rs`: `execute`.*
 
 ```rust
 fn execute<T: UserModeHooks>(&mut self, hooks: &T) -> ReturnReason {
@@ -33,7 +33,7 @@ The context it is given is a `RawUserContext`: the eighteen registers introduced
 
 On the endovisor's side, `user_run` is the one service that does not use the stub of the last chapter. It records the context, switches to the Linux stack, and does not come back until a hook brings the carrier into the kernelet again:
 
-*Simplified from `prototype/linux/endovisor/carrier.c`: `klet_svc_user_run`.*
+*Simplified from `endovisor/carrier.c`: `klet_svc_user_run`.*
 
 ```c
 static u64 klet_svc_user_run(struct klet_user_ctx *ctx)
@@ -59,7 +59,7 @@ The switch lands inside the `klet_enter` that last entered the kernelet on this 
 
 Whoever `klet_enter` returns into now has one job: copy the context into the carrier's `pt_regs`, so that when Linux returns to user mode, it returns to the tenant's program.
 
-*Simplified from `prototype/linux/endovisor/carrier.c`: `klet_ctx_to_regs`.*
+*Simplified from `endovisor/carrier.c`: `klet_ctx_to_regs`.*
 
 ```c
 static void klet_ctx_to_regs(struct klet_carrier *c, struct pt_regs *regs)
@@ -85,7 +85,7 @@ The first trip needs nothing special. The carrier arrived by a system call, so t
 
 The tenant runs, and executes `syscall`. Linux saves its registers in `pt_regs`, finds the task's hooks, and calls the syscall hook:
 
-*Simplified from `prototype/linux/endovisor/carrier.c`: `klet_on_syscall`, `klet_regs_to_ctx`.*
+*Simplified from `endovisor/carrier.c`: `klet_on_syscall`, `klet_regs_to_ctx`.*
 
 ```c
 static bool klet_on_syscall(struct pt_regs *regs)
@@ -165,7 +165,7 @@ Signals are acted on in the exit loop: Linux either kills or stops the task or a
 
 The endovisor takes the signals off the queue itself, in the resume hook, which runs at the top of that loop before Linux delivers anything:
 
-*Simplified from `prototype/linux/endovisor/carrier.c`: `klet_drain_signals`.*
+*Simplified from `endovisor/carrier.c`: `klet_drain_signals`.*
 
 ```c
 static bool klet_drain_signals(struct klet_carrier *c)
@@ -209,7 +209,7 @@ The fault signals are ignored too, and still arrive. Linux sends a fault with `f
 
 The resume hook brings the exception into the kernelet:
 
-*Simplified from `prototype/linux/endovisor/carrier.c`: `klet_on_resume`.*
+*Simplified from `endovisor/carrier.c`: `klet_on_resume`.*
 
 ```c
 static void klet_on_resume(struct pt_regs *regs)
@@ -271,7 +271,7 @@ Page faults on tenant memory take a shorter path through the endovisor's own fau
 
 ## Hello, world
 
-With chapters 3 to 7 built, `make hello` boots Linux in QEMU, loads the module, runs the holder, and this appears in the serial log (the run is `prototype/.build/serial-hello.log`; one line of Linux's own about an out-of-tree module, the lines of a self-test of the interface that the test runs first, and the counters printed at unload are left out):
+With chapters 3 to 7 built, `make hello` boots Linux in QEMU, loads the module, runs the holder, and this appears in the serial log (the run is `.build/serial-hello.log`; one line of Linux's own about an out-of-tree module, the lines of a self-test of the interface that the test runs first, and the counters printed at unload are left out):
 
 ```
 INIT: loading endovisor.ko

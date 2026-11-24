@@ -61,7 +61,7 @@ flowchart TB
 
 **A table of hooks and a pointer per task.** A new header defines the table, two function pointers, and `struct task_struct` gains a pointer to one. A task whose pointer is null is unaffected by anything else in the patch.
 
-*Simplified from `prototype/linux/patches/0001-carrier-hooks.patch`: `carrier_event_hooks`.*
+*Simplified from `linux/patches/0001-carrier-hooks.patch`: `carrier_event_hooks`.*
 
 ```c
 /* include/linux/kernelet.h (new) */
@@ -99,7 +99,7 @@ struct carrier_event_hooks {
 
 **The syscall hook.** Inside `syscall_trace_enter()`, directly after seccomp:
 
-*Simplified from `prototype/linux/patches/0001-carrier-hooks.patch`: `SYSCALL_WORK_KERNELET`.*
+*Simplified from `linux/patches/0001-carrier-hooks.patch`: `SYSCALL_WORK_KERNELET`.*
 
 ```c
 /* kernel/entry/common.c, syscall_trace_enter() */
@@ -127,7 +127,7 @@ The prototype's holder installs a filter only in one boot of `make probe`, which
 
 The hook, with Linux's own work for that flag placed before it:
 
-*Simplified from `prototype/linux/patches/0001-carrier-hooks.patch`: `resume_user_mode_work`.*
+*Simplified from `linux/patches/0001-carrier-hooks.patch`: `resume_user_mode_work`.*
 
 ```c
 /* kernel/entry/common.c, exit_to_user_mode_loop() */
