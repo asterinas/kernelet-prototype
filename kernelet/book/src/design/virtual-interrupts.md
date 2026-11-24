@@ -4,7 +4,7 @@ The kernelet's scheduler needs interrupts, and Linux leaves it none; this chapte
 
 ## Bits in a record
 
-A virtual interrupt is a bit in the `pending` word of a virtual CPU's record (chapter 8). The endovisor sets it from interrupt context or from another processor. The kernelet's handler for it runs as kernelet code on that virtual CPU's carrier, never in Linux's interrupt context, soon after. Two bits are raised in this prototype; a third, LINES, is reserved for devices:
+A virtual interrupt is a bit in the `pending` word of a virtual CPU's record (chapter 8). The endovisor sets it from interrupt context or from another processor. The kernelet's handler for it runs as kernelet code on that virtual CPU's carrier, never in Linux's interrupt context, soon after. The endovisor raises two bits; a third, LINES, is reserved for devices:
 
 | bit | meaning | set by |
 |---|---|---|
@@ -184,7 +184,7 @@ A switch inside the upcall is safe for the interrupted address because the body'
 
 vOSTD assumes that a preempted task resumes on the virtual CPU that preempted it. On a machine a per-CPU word is one `gs:` instruction, so it cannot straddle a switch; vOSTD finds the slot first and touches it second, so a task preempted between the two and resumed on another virtual CPU would write the first virtual CPU's slot. The schedulers of this book's kernels, like Asterinas's, never move a task they preempted, but OSTD allows a scheduler that balances load, and nothing in vOSTD enforces the assumption: it is a requirement vOSTD places on the kernel proper's scheduler.
 
-Kernel-mode preemption has a hazard of its own with floating-point state. From a thread's `FpuContext::load` until `user_run`, and from `execute`'s return until `save`, the thread's floating-point and vector registers are live on the processor, and a switch there, by an upcall or by a guard drop that delivers a bit, would let the next task's restore of its own registers overwrite them. A kernel proper must therefore save them in its pre-schedule handler, as Asterinas does; this book's kernels do not, so those windows are open in the prototype, and no test shows them closed.
+Kernel-mode preemption has a hazard of its own with floating-point state. From a thread's `FpuContext::load` until `user_run`, and from `execute`'s return until `save`, the thread's floating-point and vector registers are live on the processor, and a switch there, by an upcall or by a guard drop that delivers a bit, would let the next task's restore of its own registers overwrite them. A kernel proper must therefore save them in its pre-schedule handler, as Asterinas does; this book's kernels do not, so those windows remain open, and no test shows them closed.
 
 ## Preemption inside a scheduling decision
 
@@ -244,7 +244,7 @@ A carrier in user mode takes its virtual interrupts on the way back, without a t
 
 vOSTD does not switch at that point, unlike OSTD, because the tenant thread's floating-point and vector registers are still live on the processor, and this book's kernels save them only after `execute` returns and not at a switch, so another task's restore of its own would overwrite them.
 
-So under vOSTD a tenant thread that stays in user mode is never preempted. Its slice ends and need-preempt is set, but nothing acts on it until the thread enters the kernel and its kernel code reaches a call to `might_preempt`: an upcall, a guard drop or unmask that finds a bit pending, a spawn, or the kernel proper's next yield or sleep. OSTD on a machine does preempt such a thread, by calling `might_preempt` before every entry to user mode, and Asterinas's kernel proper relies on that; its `has_kernel_event` hook reports only signals. This is a difference from OSTD's documented behavior, which the prototype has not closed.
+So under vOSTD a tenant thread that stays in user mode is never preempted. Its slice ends and need-preempt is set, but nothing acts on it until the thread enters the kernel and its kernel code reaches a call to `might_preempt`: an upcall, a guard drop or unmask that finds a bit pending, a spawn, or the kernel proper's next yield or sleep. OSTD on a machine does preempt such a thread, by calling `might_preempt` before every entry to user mode, and Asterinas's kernel proper relies on that; its `has_kernel_event` hook reports only signals. This is a difference from OSTD's documented behavior, which remains unresolved.
 
 Neither the flag nor the bit can be lost in a race. A flag set while the hook is already running is not lost, as chapter 4 arranged. `user_run` publishes `KLET_USER` and then reads `pending`, while `klet_virq_raise` sets the bit and then reads the state; as with idling, one of the two always sees the other, so a bit raised just as the carrier leaves is never stranded.
 

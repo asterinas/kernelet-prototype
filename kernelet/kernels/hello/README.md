@@ -4,8 +4,7 @@ The kernel proper of `make hello` is Asterinas's "write a kernel in 100 lines"
 example: a Hello World kernel in safe Rust against OSTD, which loads a tenant
 program, gives it an address space and a user context, and serves its `write`
 and `exit` system calls. Here it is compiled against vOSTD instead of OSTD, and
-**its source is not changed by one byte**. That is the claim the whole
-prototype rests on, and the build checks it: `make kernel-proper-check`, run
+**its source is not changed by one byte**. The build checks this: `make kernel-proper-check`, run
 before every `make hello`, `cmp`s `src/lib.rs` and `hello.S` against
 `upstream/`.
 

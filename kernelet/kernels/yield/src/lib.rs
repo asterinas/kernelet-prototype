@@ -40,7 +40,7 @@ const MAP_ADDR: Vaddr = 0x0040_0000;
 const ENTRY_POINT: Vaddr = 0x0040_1000;
 
 /// How many rounds of the eight-lane mixer to run. Tuned so that the whole thing
-/// takes a few seconds on the prototype's QEMU guest.
+/// takes a few seconds on the QEMU guest.
 const ROUNDS: u64 = 800_000_000;
 
 #[ostd::main]

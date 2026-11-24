@@ -1,4 +1,4 @@
-# The probe kernel: a second kernel proper, written for this prototype, against
+# The probe kernel: a second kernel proper, written for these tests, against
 # the same vostd crate as the 100-line kernel.
 #
 # It exists to exercise three things the 100-line kernel never touches: demand

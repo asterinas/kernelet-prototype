@@ -46,7 +46,7 @@ The walk need not handle huge entries. The area holds only 4 KiB entries, since 
 
 </div>
 
-Permissions are taken from the leaf only, never combined down the levels. Linux makes every upper-level user entry readable, writable and user-accessible, so only the leaf restricts anything, with one exception: the no-execute bit on the kernel-mode table's top-level user entries, which vOSTD reads. Combined down the levels, that bit would make every tenant page non-executable. The prototype's Linux is built without the mitigation, so this case is argued, not tested.
+Permissions are taken from the leaf only, never combined down the levels. Linux makes every upper-level user entry readable, writable and user-accessible, so only the leaf restricts anything, with one exception: the no-execute bit on the kernel-mode table's top-level user entries, which vOSTD reads. Combined down the levels, that bit would make every tenant page non-executable. The guest kernel is built without the mitigation, so this case is argued, not tested.
 
 ## Copying to and from the tenant
 
@@ -62,7 +62,7 @@ Instead, a copy walks the page table from the tenant address to the frame, and c
 
 On a bad address, vOSTD returns the page-fault error at once, where OSTD would first call the kernel proper's own page-fault handler and retry. An unmapped or read-only address is a *result* of the walk, not a fault.
 
-Returning the error is enough for kernels that map eagerly, not for one that maps on demand. Asterinas's full kernel proper maps on demand, so before it can run as a kernelet vOSTD must call its handler outside the read section described below and walk again. This prototype does not do that.
+Returning the error is enough for kernels that map eagerly, not for one that maps on demand. Asterinas's full kernel proper maps on demand, so before it can run as a kernelet vOSTD must call its handler outside the read section described below and walk again. vOSTD does not do that.
 
 *Simplified from `vostd/src/mm/io.rs`: `Region`, `resolve`, `copy_regions`, `copy_opaque`.*
 
@@ -209,7 +209,7 @@ A cursor that waits behind a sleeping lock holder sleeps too, and takes the lock
 
 A page without read permission has **no Linux entry**; vOSTD keeps it in a per-space **withheld set** instead. Such pages are of two kinds: `PROT_NONE` pages, with every permission cleared, and write-only pages, which x86 cannot express because a present entry is always readable. To the kernel proper both are mapped; on a machine OSTD encodes them as valid but not-present entries.
 
-Linux has no usable encoding for them in this area. On a Linux built with NUMA balancing, Linux periodically makes entries no-access, so that the next touch faults and tells it which processor uses the page. Its fault handler therefore treats every no-access entry in an accessible area as such a marker, even in an area the balancer never scans, and rewrites it with the area's page protection: read and execute here, because the area's `pfn_mkwrite` makes Linux hold write back, plus write if the entry is dirty. A page encoded that way would become readable on its first touch. Without NUMA balancing, as in the prototype's Linux, the entry is no better: Linux takes it for present and a read fault on it for spurious, so the access faults forever without reaching the area's fault handler.
+Linux has no usable encoding for them in this area. On a Linux built with NUMA balancing, Linux periodically makes entries no-access, so that the next touch faults and tells it which processor uses the page. Its fault handler therefore treats every no-access entry in an accessible area as such a marker, even in an area the balancer never scans, and rewrites it with the area's page protection: read and execute here, because the area's `pfn_mkwrite` makes Linux hold write back, plus write if the entry is dirty. A page encoded that way would become readable on its first touch. Without NUMA balancing, as in the guest kernel, the entry is no better: Linux takes it for present and a read fault on it for spurious, so the access faults forever without reaching the area's fault handler.
 
 The set stands in for the table wherever a page has no entry. It is an ordered map from address to frame and property, in the kernelet's heap (Linux's `kmalloc`, charged to the sandbox). It holds the frame's reference exactly as an entry would. It is under the range lock, which orders cursors on one region, and a spin lock of its own, because cursors on different regions share one map; the lock is taken per statement, never across a service. `query`, `find_next`, `protect_next` and `unmap` consult the set beside the table:
 

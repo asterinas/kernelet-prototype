@@ -1,5 +1,5 @@
 /*
- * init for the kernelet-in-Linux prototype initramfs.
+ * init for the kernelet system initramfs.
  *
  * No busybox, no shell: this is PID 1. It mounts the pseudo filesystems,
  * loads the staged modules, runs the staged tests, unloads the modules and
@@ -410,7 +410,7 @@ int main(void)
 
 	out("\n");
 	out("========================================\n");
-	out("INIT: kernelet-in-Linux prototype harness\n");
+	out("INIT: kernelet test harness\n");
 	out("========================================\n");
 
 	if (!read_order())

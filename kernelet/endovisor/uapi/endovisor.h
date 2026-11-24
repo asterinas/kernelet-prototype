@@ -30,7 +30,7 @@
 // Returned by `KLET_GET_API_VERSION`; a runtime refuses any other value.
 #define KLET_API_VERSION	2
 
-// The ioctl type byte is chosen for the prototype.
+// The ioctl type byte is used by the endovisor.
 // `0xEB` is unassigned in `Documentation/userspace-api/ioctl/ioctl-number.rst` at v6.12.
 #define KLET_IOC		0xEB
 
@@ -155,7 +155,7 @@ struct klet_kind_list {
 // since its memory is charged to the creator's group
 // and the files it is given are files its creator opened.
 //
-// # Prototype limitations
+// # Implementation limits
 //
 // `memory_initial` must round to 2 or 4 MiB,
 // the grant being one physically contiguous run (`EINVAL` otherwise).
@@ -234,9 +234,9 @@ struct klet_create {
 // The calling task must be in the sandbox's control group (`EPERM` otherwise).
 // The device is backed by a file the caller opened under its own permissions.
 //
-// # Prototype limitations
+// # Implementation limits
 //
-// The prototype has no devices, so this ioctl fails with `EOPNOTSUPP`.
+// The endovisor has no devices, so this ioctl fails with `EOPNOTSUPP`.
 enum klet_device_type {
 	KLET_DEVICE_BLOCK	= 1,		// `fd`: a regular file or a block device
 	KLET_DEVICE_NET	= 2,		// `fd`: a TAP interface
@@ -265,7 +265,7 @@ struct klet_device {
 // Without a log file, the log is kept only in a bounded ring;
 // `KLET_GET_STATS` counts drops from that ring.
 //
-// # Prototype limitations
+// # Implementation limits
 //
 // The console carries output only.
 // A console or log not given goes to the host's kernel log, prefixed `kernelet:`.
@@ -325,9 +325,9 @@ struct klet_device {
 //
 // `message` is empty when there is no panic message.
 //
-// # Prototype limitations
+// # Implementation limits
 //
-// The prototype reports a panic as `KLET_END_EXITED`, as a power-off, with no message.
+// The endovisor reports a panic as `KLET_END_EXITED`, as a power-off, with no message.
 // Of the endovisor's own reasons, it detects only `KLET_KILLED_CARRIER_LOST`.
 enum klet_end {
 	KLET_END_EXITED	= 1,		// the kernel proper powered off

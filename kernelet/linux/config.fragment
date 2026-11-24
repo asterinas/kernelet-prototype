@@ -1,4 +1,4 @@
-# Minimal x86_64 kernel config for the kernelet-in-Linux prototype.
+# Minimal x86_64 kernel config for the kernelet system.
 #
 # Applied on top of `make ARCH=x86_64 tinyconfig` with
 # scripts/kconfig/merge_config.sh, then settled by `make olddefconfig`.
@@ -10,7 +10,7 @@
 CONFIG_64BIT=y
 CONFIG_SMP=y
 CONFIG_NR_CPUS=8
-# 32-bit userspace is out of scope for the prototype.
+# 32-bit userspace is unsupported by the guest.
 # CONFIG_IA32_EMULATION is not set
 # CONFIG_X86_X32_ABI is not set
 # No vsyscall page. With emulation on (Linux's default outside tinyconfig), a
@@ -71,7 +71,7 @@ CONFIG_MODULE_UNLOAD=y
 CONFIG_KALLSYMS=y
 CONFIG_KALLSYMS_ALL=y
 
-# --- process, task and time-keeping support the prototype relies on -----
+# --- process, task and time-keeping support the guest relies on -----
 CONFIG_MULTIUSER=y
 CONFIG_FUTEX=y
 CONFIG_EPOLL=y
@@ -114,7 +114,7 @@ CONFIG_DEBUG_KERNEL=y
 CONFIG_DEBUG_INFO_NONE=y
 # CONFIG_DEBUG_INFO_BTF is not set
 CONFIG_MAGIC_SYSRQ=y
-# An oops must not be fatal: the prototype expects to survive one and
+# An oops must not be fatal: the test harness expects to survive one and
 # keep printing.
 # CONFIG_PANIC_ON_OOPS is not set
 

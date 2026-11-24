@@ -9,7 +9,7 @@
 - `book/src/guides/` covers using the complete system. `book/src/endovisor/`, `book/src/host/`, and `book/src/vostd/` document only the interfaces each component exposes and their contracts (UAPI, ABI, CLI, or Rust API as appropriate). Design rationale, implementation mechanisms, cooperation between components, and soundness arguments belong in `design/`.
 - Keep the remaining existing chapters, including interface descriptions, in `design/` for now. Obtain the user's confirmation for each subsequent chapter move or extraction of interface documentation; do not redistribute design chapters by component.
 - Each proposal's filename starts with its original submission date: `YYYY-MM-DD-descriptive-title.md`. Its heading and table-of-contents label start with the same date followed by the title. Keep that date when revising the proposal.
-- A proposal's status distinguishes discussion from acceptance. When accepted, integrate the agreed changes into the relevant design or component chapters and the prototype where applicable; retain the proposal and decision rationale as history.
+- A proposal's status distinguishes discussion from acceptance. When accepted, integrate the agreed changes into the relevant design or component chapters and the implementation where applicable; retain the proposal and decision rationale as history.
 - Code-caption paths such as `endovisor/image.c` are relative to the repository root. Label proposed code separately from excerpts of existing implementation.
 - Run book commands from `book/`, or use the root Makefile's shortcuts. Generated HTML belongs in `book/build/`, never alongside the book source.
 

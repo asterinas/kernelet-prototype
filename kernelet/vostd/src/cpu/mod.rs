@@ -9,7 +9,7 @@ use core::sync::atomic::{AtomicU32, Ordering};
 pub use self::local::{AtomicCpuSet, CpuSet};
 use crate::task::atomic_mode::InAtomicMode;
 
-/// The largest number of virtual CPUs a sandbox may have in this prototype.
+/// The largest number of virtual CPUs a sandbox may have.
 pub const MAX_CPUS: usize = 8;
 
 static NUM_CPUS: AtomicU32 = AtomicU32::new(1);

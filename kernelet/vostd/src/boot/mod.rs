@@ -3,7 +3,7 @@
 //! Boot-time facilities.
 //!
 //! What a bootloader tells a machine, an endovisor tells a sandbox. The only part
-//! of it this prototype carries is the command line, which the holder passes to
+//! passed to the kernel is the command line, which the holder passes to
 //! KLET_CREATE and is how the runtime tells one kernel proper which of several
 //! scenarios to run — exactly as a kernel command line would.
 

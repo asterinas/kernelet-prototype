@@ -2,7 +2,7 @@
 /*
  * vCPU carriers, the coroutine, the carrier hooks, and the service table.
  *
- * The whole control flow of the prototype is here:
+ * The whole control flow of a carrier is here:
  *
  *   holder                vCPU 0 carrier            vCPU 1 carrier
  *   ------                --------------            --------------

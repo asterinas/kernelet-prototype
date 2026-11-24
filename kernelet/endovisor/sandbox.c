@@ -187,7 +187,7 @@ long klet_sandbox_create(struct klet_create __user *uarg)
 	max = round_up(cr.memory_max, KLET_GRANT_UNIT);
 	if (initial > max)
 		return -EINVAL;
-	/* The prototype's grant is one contiguous run of at most 4 MiB. */
+	/* The sandbox's grant is one contiguous run of at most 4 MiB. */
 	if (initial == 0 || initial > KLET_GRANT_MAX)
 		return -EINVAL;
 
@@ -752,7 +752,7 @@ static long klet_sandbox_ioctl(struct file *file, unsigned int cmd, unsigned lon
 	case KLET_GET_VCPU_EXEC_FD:
 		return klet_get_vcpu_exec_fd(inst, uarg);
 	case KLET_ATTACH_DEVICE:
-		return -EOPNOTSUPP;	// No devices in this prototype.
+		return -EOPNOTSUPP;	// Device attachment is unsupported.
 	case KLET_SET_CONSOLE:
 		return klet_set_out(inst, &inst->console, uarg);
 	case KLET_SET_LOG:

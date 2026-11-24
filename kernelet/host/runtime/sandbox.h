@@ -4,7 +4,7 @@
  *
  * The functions the book reads are these: open_system, register_kind,
  * find_kind, join_cgroup, start_carrier, wait_sandbox and run_sandbox. The
- * rest is what the prototype's tests need around them.
+ * rest is what the runtime tests need around them.
  */
 #ifndef KLET_SANDBOX_H
 #define KLET_SANDBOX_H

@@ -1,4 +1,4 @@
-// Check the endovisor UAPI against the running prototype during `make hello`.
+// Exercise the endovisor UAPI during `make hello`.
 //
 // Run `uapi-check IMAGE`, where `IMAGE` is the hello kernelet image.
 // Every check prints `UAPI-CHECK: ok` or `UAPI-CHECK: FAIL` with its result.
@@ -12,7 +12,7 @@
 // Exec checks cover file permissions, no-new-privileges, control group membership,
 // repeated arrivals, and attempts to join a killed sandbox.
 // A missing virtual CPU keeps a sandbox from booting until `KLET_KILL` ends it.
-// Operations restricted after startup and the prototype's `EOPNOTSUPP` cases are checked too.
+// Operations restricted after startup and the endovisor's `EOPNOTSUPP` cases are checked too.
 //
 // Descriptor checks cover blocking, interruptible, and nonblocking reads,
 // immutable exit records, `poll`/`select`/`epoll`, and exit statistics.
@@ -592,7 +592,7 @@ int main(int argc, char **argv)
 	refused(create(sys_fd, kind, KLET_MAX_VCPUS + 1, 4 << 20, 4 << 20, 0, 0), EINVAL,
 		"KLET_CREATE refuses KLET_MAX_VCPUS + 1 virtual CPUs (EINVAL)");
 	refused(create(sys_fd, kind, 1, 8 << 20, 8 << 20, 0, 0), EINVAL,
-		"KLET_CREATE refuses memory_initial above the prototype's 4 MiB (EINVAL)");
+		"KLET_CREATE refuses memory_initial above the 4 MiB limit (EINVAL)");
 	refused(create(sys_fd, kind, 1, 4 << 20, 2 << 20, 0, 0), EINVAL,
 		"KLET_CREATE refuses memory_initial above memory_max (EINVAL)");
 	refused(create(sys_fd, kind, 1, 4 << 20, 4 << 20, KLET_CMDLINE_MAX + 1, 0), EINVAL,
@@ -618,7 +618,7 @@ int main(int argc, char **argv)
 	   "KLET_GET_STATS: CREATED, 2 vcpus, nothing granted, vcpu 0 unstarted", "wrong");
 
 	refused(ioctl(fd, KLET_ATTACH_DEVICE, &(struct klet_device){ .type = KLET_DEVICE_BLOCK, .fd = 0 }),
-		EOPNOTSUPP, "KLET_ATTACH_DEVICE: EOPNOTSUPP in this prototype");
+		EOPNOTSUPP, "KLET_ATTACH_DEVICE: EOPNOTSUPP");
 	reason = 0x80000000u;
 	refused(ioctl(fd, KLET_KILL, &reason), EINVAL, "KLET_KILL refuses the endovisor's own reasons (EINVAL)");
 	refused(get_exec(fd, 2), EINVAL, "KLET_GET_VCPU_EXEC_FD refuses a virtual CPU beyond nr_vcpus (EINVAL)");

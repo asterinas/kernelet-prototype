@@ -4,7 +4,7 @@ The guest uses `config.fragment` and the carrier hooks in `patches/`.
 
 ## The configuration
 
-`config.fragment` is what the prototype needs of Linux v6.12 beyond
+`config.fragment` is what Kernelet needs of Linux v6.12 beyond
 `tinyconfig`. `make config` (run by `make linux` once) starts from
 `tinyconfig`, merges the fragment with the tree's own `merge_config.sh`, and
 lets `olddefconfig` settle the rest. Editing the fragment makes the next

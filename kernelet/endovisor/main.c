@@ -721,4 +721,4 @@ module_init(klet_init);
 module_exit(klet_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Endovisor for the kernelet-in-Linux prototype");
+MODULE_DESCRIPTION("Endovisor for the kernelet system");

@@ -121,7 +121,7 @@ fn copy_regions(dst: &mut Region, src: &mut Region) -> (usize, bool) {
             // SAFETY: both pointers are linear-map aliases of frames that stay
             // allocated for the read section (a frame an unmap removes waits for
             // the grace period), valid for `n` bytes; the two regions do not
-            // overlap: one of them is always a kernel buffer in this prototype.
+            // overlap: one of them is always a kernel buffer.
             unsafe { copy_opaque(dptr, sptr as *const u8, n) };
             Some(n)
         };

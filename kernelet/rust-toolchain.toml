@@ -1,4 +1,4 @@
-# The nightly the prototype is built with: the one the Asterinas tree at
+# The nightly used by Kernelet: the one the Asterinas tree at
 # commit ab9a4cfdc names, so that vOSTD and the kernels proper compile with the
 # compiler OSTD does. Only `rust-src` is needed beyond the compiler, for
 # -Zbuild-std, and only the kernel target.

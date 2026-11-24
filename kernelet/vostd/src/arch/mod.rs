@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 
-//! Architecture-specific code. Only x86-64 exists in this prototype.
+//! Architecture-specific code. vOSTD supports x86-64.
 
 pub mod cpu;
 pub(crate) mod irq;

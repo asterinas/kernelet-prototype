@@ -12,13 +12,11 @@ The book is organized around system design, usage guides, and the interfaces exp
 | [Host Tools](host/README.md) | The command-line interface exposed to users |
 | [vOSTD](vostd/README.md) | The Rust API exposed to kernelet kernel code |
 
-[Design proposals](design/proposals/README.md) live within Design. They develop and review optimizations, alternatives, and new material. A proposal is not a promise about the accepted design or the prototype's behavior. Accepted proposals are incorporated into the relevant chapters and, where applicable, the prototype. Declined or withdrawn proposals remain available with the reasons for the decision.
+[Design proposals](design/proposals/README.md) live within Design. They develop and review optimizations, alternatives, and new material. A proposal is not a promise about the accepted design or the implementation's behavior. Accepted proposals are incorporated into the relevant chapters and, where applicable, the implementation. Declined or withdrawn proposals remain available with the reasons for the decision.
 
 Start with [Why a kernel of your own](guides/why-a-kernel-of-your-own.md) to understand the motivation and concepts, then continue to [System design](design/README.md). To suggest a change, read [Contributing a design proposal](design/proposals/README.md) and use the [proposal template](design/proposals/template.md). Each proposal's title and filename begin with its original submission date, such as `2026-10-27 Improve syscall performance` and `2026-10-27-improve-syscall-performance.md`.
 
-The companion prototype patches and extends Linux. With those changes small Rust kernels written against OSTD, the framework at the bottom of the Rust kernel Asterinas, can run inside Linux, scheduled and stopped by Linux without Linux's own code needing to understand the kernel it runs.
-
-By the end you will know how every part of that prototype works, down to the C and Rust that do it. You will also have run it; the [implementation guide](https://github.com/asterinas/kernelet-prototype/blob/main/kernelet/IMPLEMENTATION.md) says how.
+To build and boot the example kernel, follow [Building and running](https://github.com/asterinas/kernelet-prototype/blob/main/kernelet/README.md#building-and-running).
 
 ## Design explanations and interface specifications
 
@@ -34,7 +32,7 @@ It assumes nothing about the Linux source. Background knowledge beyond the cours
 
 <div class="background">
 
-**Linux: control groups.** A control group is a set of tasks that Linux accounts and limits together. The prototype puts a sandbox's carrier tasks in one group so that Linux can account for their resource use together.
+**Linux: control groups.** A control group is a set of tasks that Linux accounts and limits together. The host runtime puts a sandbox's carrier tasks in one group so that Linux can account for their resource use together.
 
 </div>
 
@@ -42,7 +40,7 @@ If you already know a box's topic, you can continue with the main text. The same
 
 ## Code excerpts
 
-Source paths in code captions are relative to `kernelet/`. Design proposals may also show proposed code; they must distinguish it from code already in the prototype.
+Source paths in code captions are relative to `kernelet/`. Design proposals may also show proposed code; they must distinguish it from code already in the implementation.
 
 A caption under each excerpt names the file it comes from and, for a simplified excerpt, the functions it shows, like this:
 
@@ -59,7 +57,7 @@ The terminology used below is introduced in [Why a kernel of your own](guides/wh
 1. **System design** introduces the scope and reading order of the design chapters.
 2. **The endovisor UAPI**, its user-space interface, is what a program on the host may ask of the endovisor: the image as a file, the device node and its descriptors, and how user space creates the carriers.
 3. **The kernelet ABI**, its binary interface, is how a kernelet talks to its host from the inside: the tables passed between host and kernelet, the grant, and the first services.
-4. **Carrier hooks and patch overview** adds the two carrier event hooks, where a carrier enters and leaves kernelet code, and lists the rest of the small patch the prototype makes to Linux.
+4. **Carrier hooks and patch overview** adds the two carrier event hooks, where a carrier enters and leaves kernelet code, and lists the rest of the small patch Kernelet applies to Linux.
 5. **Carriers** puts a kernelet on the Linux tasks it runs on.
 6. **Two stacks** is how a kernelet keeps its own stacks on a Linux task.
 7. **Into user mode and back** is the round trip of a system call, after which the hundred-line kernel prints its greeting.

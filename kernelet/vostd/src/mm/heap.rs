@@ -4,7 +4,7 @@
 //!
 //! The kernelet's heap is the host's `kmalloc`, reached through two services,
 //! `mem_alloc` and `mem_free`, rather than an allocator inside the grant: the
-//! grant is only 4 MiB in this prototype and is kept for frames, the memory a
+//! grant is at most 4 MiB and is kept for frames, the memory a
 //! tenant can be given. The endovisor records every block it hands out, and
 //! frees whatever the kernelet still holds when the sandbox ends, so a kernelet
 //! that is stopped or evicted with objects alive leaks nothing into the host.

@@ -189,7 +189,7 @@ int find_kind(int sys_fd, const char *name)
 /*
  * Join a control group: write our process identifier into its cgroup.procs.
  * The group is made first if it does not exist yet, which is the runtime's
- * job in a real deployment; the prototype has no runtime above the holder.
+ * job in a real deployment; the holder runs directly.
  */
 void join_cgroup(const char *dir)
 {

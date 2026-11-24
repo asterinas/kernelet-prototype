@@ -27,7 +27,7 @@ Use one of these statuses in the proposal:
 |---|---|
 | Draft | The author is developing the idea and identifying open questions. |
 | Under review | The proposal is ready for discussion and evaluation. |
-| Accepted | The agreed changes have been incorporated into the relevant chapters and, where applicable, the prototype. |
+| Accepted | The agreed changes have been incorporated into the relevant chapters and, where applicable, the implementation. |
 | Declined | Review concluded that the proposal should not be incorporated. |
 | Withdrawn | The author has stopped pursuing the proposal. |
 

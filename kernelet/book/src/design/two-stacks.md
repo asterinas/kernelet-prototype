@@ -130,7 +130,7 @@ static void klet_leave(struct klet_carrier *c, enum klet_cstate state)
 
 A kernelet stack is 256 KiB from `vmalloc`, with an unmapped page before and after it, since every `vmalloc` range is followed by one.
 
-What the guard page buys is less than it seems. A stack that runs off its end faults with a stack pointer that is already bad; delivering a fault pushes a frame onto the very stack that has run out, so the processor cannot deliver it, and Linux halts the machine on the double fault that results. A check at every function entry of the image would catch it before the end; this prototype has no such check, so a kernel proper with unbounded recursion would halt the host, and the test kernels are written not to recurse.
+What the guard page buys is less than it seems. A stack that runs off its end faults with a stack pointer that is already bad; delivering a fault pushes a frame onto the very stack that has run out, so the processor cannot deliver it, and Linux halts the machine on the double fault that results. A check at every function entry of the image would catch it before the end; the endovisor has no such check, so a kernel proper with unbounded recursion would halt the host, and the test kernels are written not to recurse.
 
 The endovisor keeps a **pool** of stacks per sandbox: a freed stack goes back to the pool, not to Linux, and the pool is returned whole when the sandbox's last carrier is gone. The reason is a Linux detail a tenant could otherwise turn against the machine: freeing `vmalloc` memory is batched, and the batch ends in a TLB flush on *every* processor, so a kernel that created and ended tasks in a loop would tax processors it is not allowed to run on.
 

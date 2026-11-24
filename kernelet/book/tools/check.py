@@ -9,7 +9,7 @@ It fails, with a line per problem, if:
   - a design chapter outside proposals links to external sources other than
     Linux v6.12 on elixir.bootlin.com;
   - a proposal filename, title, or table-of-contents entry lacks its submission date;
-  - a code caption names a file of the companion prototype that does not exist, or an
+  - a code caption names a file of the implementation that does not exist, or an
     identifier that does not appear in that file. A caption is any line that holds a code
     span naming a source path; every other code span on that line that looks like an
     identifier (`klet_enter`, `VmSpace::new`, `vm_map()`) is looked for in the named file(s).

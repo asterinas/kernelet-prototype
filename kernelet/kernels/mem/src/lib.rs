@@ -4,7 +4,7 @@
 //! address space that is a Linux address space, and measures what it costs.
 //!
 //! Safe Rust against the OSTD-shaped API, like the other kernels here. What it
-//! reads beyond that API comes from `ostd::klet`, the prototype's
+//! reads beyond that API comes from `ostd::klet`, vOSTD's
 //! instrumentation: counter deltas around each test (Linux faults counted in
 //! the endovisor's fault handler, service calls, range-lock waits, grace
 //! periods) and the one test hook, which makes `vm_map` sleep in the host. One

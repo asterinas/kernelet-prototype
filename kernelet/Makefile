@@ -4,7 +4,7 @@ all: check build
 build check render serve clean:
 	$(MAKE) -C book $@
 
-# Build-and-boot plumbing for the kernelet-in-Linux prototype.
+# Build-and-boot plumbing for the kernelet system.
 #
 # The suite and the measurements:
 #
@@ -94,7 +94,7 @@ SERIAL    := $(BUILD)/serial.log
 
 KBUILD := $(MAKE) -C $(LINUX_DIR) ARCH=$(ARCH)
 
-# --- the kernelet prototype ---------------------------------------------
+# --- kernelet images ---------------------------------------------
 PATCH      := $(CURDIR)/linux/patches/0001-carrier-hooks.patch
 TEMPLATE   := $(CURDIR)/kernels/hello/upstream
 CARGO      ?= cargo
@@ -385,7 +385,7 @@ $(INITRAMFS): host/initramfs/init.c $(GEN_INIT_CPIO)
 	$(GEN_INIT_CPIO) $(INITRAMFS_LIST) | gzip -9 > $@
 	@ls -l $@
 
-# --- staging the prototype ----------------------------------------------
+# --- staging the guest ----------------------------------------------
 
 # Every boot stages the one endovisor.ko, with the module parameters of its
 # test, the image of its kernel proper as /<kernel>.image, the holder, and the
@@ -975,7 +975,7 @@ run: $(BZIMAGE) $(INITRAMFS)
 	fi; \
 	exit $$rc
 
-# --- the whole prototype ------------------------------------------------
+# --- boot and validation ------------------------------------------------
 
 hello:
 	$(MAKE) KLET_KERNEL=hello linux stage-hello initramfs

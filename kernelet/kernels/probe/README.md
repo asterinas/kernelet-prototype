@@ -1,7 +1,6 @@
 # probe: the three mechanisms the 100-line kernel never reaches
 
-A second kernel proper in the style of the 100-line kernel, written for this
-prototype against the same API, that drives:
+This kernel uses the same API as the 100-line kernel to exercise three mechanisms:
 
 1. **demand paging**: only the program's text is mapped; the program stores
    to an unmapped page, the area's fault handler reports the fault to the

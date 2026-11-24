@@ -53,7 +53,7 @@ pub struct GeneralRegs {
 
 /// Architectural CPU exceptions.
 ///
-/// The same shape as real OSTD's, with the variants this prototype can actually
+/// The same shape as real OSTD's, with the variants vOSTD can
 /// produce. `PageFault` carries [`RawPageFaultInfo`] exactly as it does there;
 /// the one difference is where the address comes from. On bare metal OSTD reads
 /// CR2 in its own trap handler; here the endovisor has the address from Linux's

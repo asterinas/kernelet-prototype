@@ -4,7 +4,7 @@
 //!
 //! This crate's library name is `ostd`. It exposes the same paths, generics and
 //! signatures as Asterinas's `ostd` at commit `ab9a4cfdc`, for everything the
-//! kernel propers in this prototype use, plus a few members of the same
+//! example kernels use, plus a few members of the same
 //! interface that none of them calls but a kernel written against OSTD would
 //! reasonably reach for, kept for completeness: `Task::need_yield`,
 //! `CpuId::bsp`, `SpinLock::try_lock`, `WaitQueue::wake_one`,

@@ -149,7 +149,7 @@ sequenceDiagram
 
 Note what the sequence does *not* say: that the task which comes back is the one that left. Between the two switches the kernelet's own scheduler may have run another task, and then it is that task's `execute` that leaves, with another thread's registers. Nothing in Linux's exit path minds, because everything Linux will restore from the stack is in `pt_regs`, and the hook overwrites all of it.
 
-The thread-pointer base is not in `pt_regs`, so in the prototype every tenant thread on a carrier shares the carrier's. A program keeps a pointer to its thread's private variables in a segment register (`%fs` on x86-64), and Linux saves that register's base per task, in its own record, not on the stack. The prototype's context carries no such base; a full vOSTD would carry one per thread and have the endovisor set it on each trip.
+The thread-pointer base is not in `pt_regs`, so every tenant thread on a carrier shares the carrier's. A program keeps a pointer to its thread's private variables in a segment register (`%fs` on x86-64), and Linux saves that register's base per task, in its own record, not on the stack. The saved context carries no such base; a full vOSTD would carry one per thread and have the endovisor set it on each trip.
 
 ## Coming back by an exception
 

@@ -32,8 +32,7 @@ make render PAGE=design/carrier-hooks.html OUT=/tmp/carrier-hooks.png
 
 The build needs `mdbook` and `mdbook-mermaid`; rendering also needs a headless
 Chrome browser. The `kernelet/Makefile` delegates the same book commands
-here. `make clean` removes generated HTML and renderer output, keeping the book's
-source and the prototype intact.
+here. `make clean` removes generated HTML and renderer output.
 
 ## Publishing
 

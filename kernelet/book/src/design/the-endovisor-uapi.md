@@ -2,11 +2,13 @@
 
 The endovisor's user-space interface, its UAPI, is one header, `endovisor/uapi/endovisor.h`: one device node, three kinds of file descriptor, and one rule about who creates the tasks. Linux calls the set of system calls, device nodes and file formats that user space may use its **UAPI**, the user-space application programming interface, and keeps the headers that define it in a directory of that name. Everything the rest of the book builds is behind this interface, and nothing a tenant does ever touches it.
 
-This chapter first shows the interface in use, by the prototype's own holder program, then says why it has the shape it has, and then specifies every operation.
+This chapter first shows the interface in use, by the holder program, then says why it has the shape it has, and then specifies every operation.
 
-## A prototype kernelet runtime
+<a id="a-prototype-kernelet-runtime"></a>
 
-The program that drives a kernelet sandbox is its **holder**: the one process of the kernelet runtime that creates the sandbox, keeps its descriptor open for as long as the sandbox lives, and closes it to release the sandbox. A container runtime has such a process per container; the prototype's is `holder.c`, a static C program of two commands, `register` and `run`, around the client functions of `sandbox.c`, which the prototype's test drivers share. The prototype's tests run through the interface: the holder registers each kernel's image and runs the sandbox, and a self-test run before the hello kernel boots exercises every operation.
+## The holder runtime
+
+The program that drives a kernelet sandbox is its **holder**: the one process of the kernelet runtime that creates the sandbox, keeps its descriptor open for as long as the sandbox lives, and closes it to release the sandbox. A container runtime has such a process per container; here the holder is `holder.c`, a static C program of two commands, `register` and `run`, around the client functions of `sandbox.c`, which the test drivers share. The tests run through the interface: the holder registers each kernel's image and runs the sandbox, and a self-test run before the hello kernel boots exercises every operation.
 
 <div class="background">
 
@@ -136,7 +138,7 @@ Between the `fork` and the `execveat` the child is an ordinary process of the ho
 In summary, the whole life of a sandbox is, in order:
 
 1. When the machine is set up, the operator registers each kind with `KLET_KIND_REGISTER`.
-2. The runtime makes a control group for the sandbox with the limits the operator chose, and starts the holder in it, or the holder moves itself in before it creates anything, as the prototype's does when given a group (`join_cgroup`).
+2. The runtime makes a control group for the sandbox with the limits the operator chose, and starts the holder in it, or the holder moves itself in before it creates anything, as the holder does when given a group (`join_cgroup`).
 3. The holder creates the sandbox with `KLET_CREATE`, opens the disk image and whatever else the sandbox is to have and passes each with `KLET_ATTACH_DEVICE`, and passes its console and log with `KLET_SET_CONSOLE` and `KLET_SET_LOG`.
 4. For each virtual CPU, the holder asks for the exec descriptor with `KLET_GET_VCPU_EXEC_FD` and forks a child, which arranges itself and executes the descriptor. The first of those `exec`s loads the kind's image as this sandbox's instance. From now on, the carrier no longer executes the holder's code, but the kernelet's.
 5. The sandbox runs. Linux schedules each carrier with the processors and the class its creator gave it; the kernelet schedules its own tasks on them.
@@ -195,7 +197,7 @@ The image contract has four requirements:
 - **Only relative runtime relocations.** Each relocation is an x86-64 `R_X86_64_RELATIVE` record with an explicit addend. It writes the sandbox's load base plus the addend into a private 64-bit field. Its symbol index must be zero, its destination must lie wholly within writable image data, and its resulting pointer must refer to the image. There is no external symbol lookup.
 - **An explicit entry table.** By this image ABI's convention, ELF's `e_entry` identifies `kernelet_entry_table`, a data object rather than an instruction to execute. After relocation, its function pointers must point into that sandbox's executable segment, and its ABI version must match the endovisor's. The table is described in [the kernelet ABI](the-kernelet-abi.md#the-three-tables).
 
-The prototype rejects images requiring an ELF interpreter, external libraries, TLS, or automatic constructor and destructor execution. It also rejects unsupported dynamic relocation formats and relocations into shared pages. Common symbols must have been assigned storage by the final linker. TLS and automatic initialization are implementation restrictions rather than requirements of kernelet isolation: initialization currently runs explicitly during sandbox boot, and registration runs no image code.
+The endovisor rejects images requiring an ELF interpreter, external libraries, TLS, or automatic constructor and destructor execution. It also rejects unsupported dynamic relocation formats and relocations into shared pages. Common symbols must have been assigned storage by the final linker. TLS and automatic initialization are implementation restrictions rather than requirements of kernelet isolation: initialization currently runs explicitly during sandbox boot, and registration runs no image code.
 
 At registration, the loader in `endovisor/image.c` validates the image and retains its shared pages and pristine data template. When a sandbox starts, it creates a mapping at the segment offsets specified by the linker, using the kind's physical pages for code and read-only data and fresh physical pages for writable data. It copies the data template, zeroes uninitialized storage, applies the private relocations and sets the mapping's permissions. The kind's shared pages stay alive until every sandbox of that kind has been destroyed and the kind is unregistered.
 
@@ -271,7 +273,7 @@ The system descriptor is `open("/dev/endovisor")`. The node is owned by root; an
 // Returned by `KLET_GET_API_VERSION`; a runtime refuses any other value.
 #define KLET_API_VERSION	2
 
-// The ioctl type byte is chosen for the prototype.
+// The ioctl type byte is used by the endovisor.
 // `0xEB` is unassigned in `Documentation/userspace-api/ioctl/ioctl-number.rst` at v6.12.
 #define KLET_IOC		0xEB
 
@@ -333,11 +335,11 @@ struct klet_kind_register {
 #define KLET_KIND_REGISTER		_IOW(KLET_IOC, 0x01, struct klet_kind_register)
 ```
 
-The [image format and its requirements](#the-image-format-and-its-requirements) above explain the accepted relocations and distinguish the prototype's loading scheme from the requirements for sharing code across concurrent sandboxes.
+The [image format and its requirements](#the-image-format-and-its-requirements) above explain the accepted relocations and distinguish the endovisor's loading scheme from the requirements for sharing code across concurrent sandboxes.
 
 <div class="background">
 
-**Linux: capabilities and lockdown.** Root's powers are divided into named *capabilities*, and a privileged operation asks for the one it needs with [`capable()`](https://elixir.bootlin.com/linux/v6.12/source/kernel/capability.c#L434). Loading a module asks for `CAP_SYS_MODULE` and that module loading has not been switched off ([`init_module`](https://elixir.bootlin.com/linux/v6.12/source/kernel/module/main.c#L2646) checks both), reads the file in a way the host's security modules can veto, and, for a module without a valid signature, asks that signatures are not being enforced and that the kernel is not *locked down*, a mode in which nothing unsigned may be added to the running kernel ([`security_locked_down()`](https://elixir.bootlin.com/linux/v6.12/source/security/security.c#L5766)). The switch that turns module loading off is not visible to a module; the prototype's patch exports it.
+**Linux: capabilities and lockdown.** Root's powers are divided into named *capabilities*, and a privileged operation asks for the one it needs with [`capable()`](https://elixir.bootlin.com/linux/v6.12/source/kernel/capability.c#L434). Loading a module asks for `CAP_SYS_MODULE` and that module loading has not been switched off ([`init_module`](https://elixir.bootlin.com/linux/v6.12/source/kernel/module/main.c#L2646) checks both), reads the file in a way the host's security modules can veto, and, for a module without a valid signature, asks that signatures are not being enforced and that the kernel is not *locked down*, a mode in which nothing unsigned may be added to the running kernel ([`security_locked_down()`](https://elixir.bootlin.com/linux/v6.12/source/security/security.c#L5766)). The switch that turns module loading off is not visible to a module; the Linux patch exports it.
 
 </div>
 
@@ -428,7 +430,7 @@ struct klet_kind_list {
 // since its memory is charged to the creator's group
 // and the files it is given are files its creator opened.
 //
-// # Prototype limitations
+// # Implementation limits
 //
 // `memory_initial` must round to 2 or 4 MiB,
 // the grant being one physically contiguous run (`EINVAL` otherwise).
@@ -517,9 +519,9 @@ struct klet_create {
 // The calling task must be in the sandbox's control group (`EPERM` otherwise).
 // The device is backed by a file the caller opened under its own permissions.
 //
-// # Prototype limitations
+// # Implementation limits
 //
-// The prototype has no devices, so this ioctl fails with `EOPNOTSUPP`.
+// The endovisor has no devices, so this ioctl fails with `EOPNOTSUPP`.
 enum klet_device_type {
 	KLET_DEVICE_BLOCK	= 1,		// `fd`: a regular file or a block device
 	KLET_DEVICE_NET	= 2,		// `fd`: a TAP interface
@@ -554,7 +556,7 @@ struct klet_device {
 // Without a log file, the log is kept only in a bounded ring;
 // `KLET_GET_STATS` counts drops from that ring.
 //
-// # Prototype limitations
+// # Implementation limits
 //
 // The console carries output only.
 // A console or log not given goes to the host's kernel log, prefixed `kernelet:`.
@@ -632,9 +634,9 @@ The record is a persistent result, not a stream: reads do not consume it or adva
 //
 // `message` is empty when there is no panic message.
 //
-// # Prototype limitations
+// # Implementation limits
 //
-// The prototype reports a panic as `KLET_END_EXITED`, as a power-off, with no message.
+// The endovisor reports a panic as `KLET_END_EXITED`, as a power-off, with no message.
 // Of the endovisor's own reasons, it detects only `KLET_KILLED_CARRIER_LOST`.
 enum klet_end {
 	KLET_END_EXITED	= 1,		// the kernel proper powered off
@@ -720,7 +722,7 @@ The exec changes two aspects of how those task interfaces work. First, the carri
 
 Second, signals control the carrier's execution but do not deliver events to the tenant. `SIGSTOP` stops the virtual CPU until `SIGCONT`; `SIGKILL` to any carrier ends the whole sandbox. Other signals are discarded. The runtime can therefore stop the sandbox through `kill -KILL` on a carrier or `cgroup.kill` on its group, as well as through `KLET_KILL` on the sandbox descriptor.
 
-**What this book's prototype leaves out.** The interface is written for a full endovisor, and the header's comments say where this book's falls short of it. It has no devices, so `KLET_ATTACH_DEVICE` fails with `EOPNOTSUPP`. Its console carries output only, so the input half of `KLET_SET_CONSOLE` does not exist, and a sandbox given no console or log file has both printed to the host's kernel log. Its memory is one fixed grant of 2 or 4 MiB, selected by `memory_initial` at creation; `memory_max` is recorded, but there is no mechanism to grow the grant. A panic ends the kernelet as a power-off does, with no message in the exit record, and of the endovisor's own kill reasons it detects only a lost carrier. Each of those is named where the book reaches the place it would go.
+**Current limitations.** The endovisor has no devices, so `KLET_ATTACH_DEVICE` fails with `EOPNOTSUPP`. Its console carries output only, so the input half of `KLET_SET_CONSOLE` does not exist, and a sandbox given no console or log file has both printed to the host's kernel log. Its memory is one fixed grant of 2 or 4 MiB, selected by `memory_initial` at creation; `memory_max` is recorded, but there is no mechanism to grow the grant. A panic ends the kernelet as a power-off does, with no message in the exit record, and of the endovisor's own kill reasons it detects only a lost carrier. Each of those is named where the book reaches the place it would go.
 
 <div class="recap">
 

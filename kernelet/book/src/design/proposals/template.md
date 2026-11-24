@@ -25,7 +25,7 @@ Distinguish observations and measurements from assumptions.
 
 Describe the design or material in enough detail to review it.
 Explain how it fits the existing system and what would change.
-Clearly label proposed code and behavior that the prototype does not yet implement.
+Clearly label proposed code and behavior outside the current implementation.
 
 ## Alternatives and tradeoffs
 
@@ -36,7 +36,7 @@ compatibility, and the reader's understanding.
 ## Implementation and integration
 
 Identify affected code and chapters, dependencies, and any migration needed.
-Explain how the accepted changes would be incorporated into the book and prototype.
+Explain how the accepted changes would be incorporated into the book and implementation.
 For interface changes, identify the concrete component specification to create or
 update separately from the design explanation. Specify how the contract will be
 checked against the implementation; linking to a design chapter is not sufficient.

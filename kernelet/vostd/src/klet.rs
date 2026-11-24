@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 
-//! The prototype's instrumentation and its one test hook. **Not OSTD API**: no
+//! Kernelet's instrumentation and its one test hook. **Not OSTD API**: no
 //! kernel proper of the Asterinas tree calls anything here, and the 100-line
 //! kernel does not. The memory test kernel (`mem/`) uses it to take counter
 //! deltas around a test, and to make `vm_map` sleep in the host so that the

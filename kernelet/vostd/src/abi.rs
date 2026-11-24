@@ -293,7 +293,7 @@ unsafe impl Sync for VcpuRec {}
 /// Virtual interrupt lines.
 pub const VIRQ_TICK: u32 = 1 << 0;
 pub const VIRQ_KICK: u32 = 1 << 1;
-/// The summary bit for device lines. Nothing raises it in this prototype.
+/// The summary bit for device lines. No device currently raises it.
 pub const VIRQ_LINES: u32 = 1 << 2;
 
 /// The one symbol the endovisor resolves in the kernelet image.

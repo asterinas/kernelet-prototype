@@ -217,7 +217,7 @@ struct klet_vcpu_rec {
 /* Virtual interrupt lines. */
 #define KLET_VIRQ_TICK  (1u << 0)
 #define KLET_VIRQ_KICK  (1u << 1)
-/* The summary bit for device lines. Nothing raises it in this prototype. */
+/* The summary bit for device lines. No device currently raises it. */
 #define KLET_VIRQ_LINES (1u << 2)
 
 struct klet_services {

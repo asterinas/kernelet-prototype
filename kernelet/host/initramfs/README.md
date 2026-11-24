@@ -15,9 +15,7 @@ Everything it prints goes to the serial console with `write(2)`, never through
 a stdio buffer, so that nothing is lost when the machine powers off or a test
 crashes the kernel.
 
-It belongs to the harness rather than to the design; the book describes the
-harness, and how to read a serial log, where it first boots the prototype
-(chapter 7, where `make hello` first boots).
+Chapter 7 follows a `make hello` boot through its serial log.
 
 ## How it is built
 

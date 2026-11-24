@@ -95,7 +95,7 @@ The endovisor checks the entry table's `abi_version` against its own when an ima
 
 ## The grant and the direct map
 
-The endovisor gives a kernelet a **grant**: one physically contiguous block of RAM, the `memory_initial` of the holder's create request (4 MiB from the prototype's holder; a request is rounded up to 2 MiB and may not exceed 4 MiB), taken from Linux's page allocator when the sandbox starts, charged to the sandbox's control group, and described in the boot arguments by its physical address and length.
+The endovisor gives a kernelet a **grant**: one physically contiguous block of RAM, the `memory_initial` of the holder's create request (4 MiB from the holder; a request is rounded up to 2 MiB and may not exceed 4 MiB), taken from Linux's page allocator when the sandbox starts, charged to the sandbox's control group, and described in the boot arguments by its physical address and length.
 
 *Simplified from `endovisor/sandbox.c`: `klet_sandbox_start`.*
 
