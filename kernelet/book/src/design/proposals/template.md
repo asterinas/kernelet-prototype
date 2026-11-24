@@ -8,7 +8,7 @@ Copy the Markdown below into a dated proposal file. Replace the date and title, 
 - Status: Draft
 - Author(s): Name(s)
 - Discussion: Link to the review or discussion, when available
-- Affected chapters: Links to the relevant Accepted Design chapters
+- Affected chapters: Links to the relevant design or component chapters
 - Implementation or experiments: Links, or “Not yet implemented”
 
 ## Summary
@@ -37,6 +37,9 @@ compatibility, and the reader's understanding.
 
 Identify affected code and chapters, dependencies, and any migration needed.
 Explain how the accepted changes would be incorporated into the book and prototype.
+For interface changes, identify the concrete component specification to create or
+update separately from the design explanation. Specify how the contract will be
+checked against the implementation; linking to a design chapter is not sufficient.
 
 ## Validation and evidence
 
@@ -52,6 +55,6 @@ List unresolved choices and the evidence or feedback needed to resolve them.
 
 Pending review.
 When a decision is made, record its date, outcome, and rationale.
-If accepted, link to the updated Accepted Design chapters and implementation.
+If accepted, link to the updated design or component chapters and implementation.
 If declined or withdrawn, explain why and any conditions worth revisiting.
 ```

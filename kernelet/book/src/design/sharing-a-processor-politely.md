@@ -14,13 +14,13 @@ Under `preempt=none`, a kernelet task that computes holds its processor for as l
 
 The remedy is for the watch timer to do what a call to `cond_resched()` would: give the processor up on the kernelet's behalf when Linux wants it. The two forms below exist for the configurations in which Linux does not preempt kernel code; on a Linux that does, Linux reschedules by itself on the way out of the interrupt, and neither has anything left to do.
 
-The first form is the upcall of chapter 10: on its way out, if Linux has set `need_resched` meanwhile, vOSTD calls `vcpu_yield`, which reschedules in Linux. vOSTD notices without calling Linux, by the decrement-and-test of its mirror, under Problem 2; with the mirror off, only the stub below yields. The Linux built for this book is configured for full preemption and booted with `preempt=none` for this test, so it still keeps its preemption count, and it folds `need_resched` into that count (the box under Problem 2).
+The first form is the upcall of chapter 9: on its way out, if Linux has set `need_resched` meanwhile, vOSTD calls `vcpu_yield`, which reschedules in Linux. vOSTD notices without calling Linux, by the decrement-and-test of its mirror, under Problem 2; with the mirror off, only the stub below yields. The Linux built for this book is configured for full preemption and booted with `preempt=none` for this test, so it still keeps its preemption count, and it folds `need_resched` into that count (the box under Problem 2).
 
 The second form is a **yield stub** in the endovisor, for when the upcall cannot be taken because the interrupted task's stack has too little room left, or its bound is unknown. The timer points the interrupted frame at the stub by rewriting the frame's instruction pointer, as it does for the upcall.
 
-The stub fits where the upcall does not. The upcall needs 32 KiB left on the stack, 16 KiB for its own frames and 16 KiB reserved for a Linux interrupt on the same stack. The stub needs a few dozen words, the slot it reserves, the sixteen words it pushes and one small C frame, and the reschedule itself runs on the Linux stack. Nothing checks for those few words; running out halts the host on a double fault, as chapter 7 explains.
+The stub fits where the upcall does not. The upcall needs 32 KiB left on the stack, 16 KiB for its own frames and 16 KiB reserved for a Linux interrupt on the same stack. The stub needs a few dozen words, the slot it reserves, the sixteen words it pushes and one small C frame, and the reschedule itself runs on the Linux stack. Nothing checks for those few words; running out halts the host on a double fault, as chapter 6 explains.
 
-The watch callback's non-critical branch becomes the following, which replaces chapter 10's call to `klet_virq_redirect`. `again` is the callback's last lines, which re-arm the timer and return:
+The watch callback's non-critical branch becomes the following, which replaces chapter 9's call to `klet_virq_redirect`. `again` is the callback's last lines, which re-arm the timer and return:
 
 *Simplified from `prototype/linux/endovisor/watch.c`: `klet_watch_fn`.*
 
@@ -193,7 +193,7 @@ The mirror lets a kernelet defer Linux's preemption, so a kernel proper whose lo
 
 The watch timer bounds the deferral at two of its one-millisecond periods when ticks arrive on time, three when one is late, from interrupt context whatever the count. A tick that finds a carrier in kernelet code in a critical section with `need_resched` set notes the time; if the next tick finds the same, and at least a millisecond has passed since the note (`now` is the monotonic clock), it **forces** the yield. A tick that arrives late, because Linux had interrupts off or the machine under the test VM was busy, lengthens the grace, and a second strike that comes less than a millisecond after a late first one is skipped, so the grace can reach three ticks; the second strike is skipped whenever the first strike's callback ran later than the second's, which any jitter can cause.
 
-In the callback, the bound replaces chapter 10's last branch. Before it, a requested firing goes straight to `again`, and so does a tick that finds no `need_resched`, which first drops the note:
+In the callback, the bound replaces chapter 9's last branch. Before it, a requested firing goes straight to `again`, and so does a tick that finds no `need_resched`, which first drops the note:
 
 *Simplified from `prototype/linux/endovisor/watch.c`: `klet_watch_fn`.*
 

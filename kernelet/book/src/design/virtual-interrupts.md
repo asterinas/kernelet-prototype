@@ -4,7 +4,7 @@ The kernelet's scheduler needs interrupts, and Linux leaves it none; this chapte
 
 ## Bits in a record
 
-A virtual interrupt is a bit in the `pending` word of a virtual CPU's record (chapter 9). The endovisor sets it from interrupt context or from another processor. The kernelet's handler for it runs as kernelet code on that virtual CPU's carrier, never in Linux's interrupt context, soon after. Two bits are raised in this prototype; a third, LINES, is reserved for devices:
+A virtual interrupt is a bit in the `pending` word of a virtual CPU's record (chapter 8). The endovisor sets it from interrupt context or from another processor. The kernelet's handler for it runs as kernelet code on that virtual CPU's carrier, never in Linux's interrupt context, soon after. Two bits are raised in this prototype; a third, LINES, is reserved for devices:
 
 | bit | meaning | set by |
 |---|---|---|
@@ -91,7 +91,7 @@ static enum hrtimer_restart klet_watch_fn(struct hrtimer *timer)
 
 The callback's two tests keep it from redirecting anything but kernelet code. `klet_in_image_text` asks whether the interrupted instruction lies in the kernelet image's code; Linux's code and the endovisor's never do. `klet_in_kernelet` asks whether the carrier is running kernelet code and not a service: state `RUNNING`, depth 0, not asleep in `vcpu_idle`, and not *evicted*, that is, not already being forced out of kernelet code by the endovisor, as happens when the sandbox is being stopped. A carrier inside a service call is never redirected, because it may hold Linux's locks.
 
-`klet_virq_raise` sets the bit and does the two cheap things that get it noticed. It wakes the carrier if it is asleep in `vcpu_idle`. It flags the carrier (chapter 6) if it is in user mode, so that it comes back through the resume hook and `user_run` returns 2.
+`klet_virq_raise` sets the bit and does the two cheap things that get it noticed. It wakes the carrier if it is asleep in `vcpu_idle`. It flags the carrier (chapter 5) if it is in user mode, so that it comes back through the resume hook and `user_run` returns 2.
 
 When the carrier is in kernelet code outside a critical section, the endovisor delivers at once, as a machine would, by changing one saved register:
 
@@ -125,7 +125,7 @@ The stub, in vOSTD's assembly, saves everything on the *current task's* kernelet
 
 Two build settings keep the stub short. The kernelet is built without vector instructions, so there is no vector state to save. The kernelet, like Linux, is compiled without a red zone, the 128 bytes below the stack pointer that user-mode code may use without moving it, so the stub may push below the interrupted `rsp`.
 
-The excerpt is in Intel syntax, destination first, as Rust's `global_asm!` has it; chapter 7's switch was in AT&T syntax, the GNU assembler's default, source first.
+The excerpt is in Intel syntax, destination first, as Rust's `global_asm!` has it; chapter 6's switch was in AT&T syntax, the GNU assembler's default, source first.
 
 *Simplified from `prototype/vostd/src/vcpu.rs`: `klet_virq_entry`, `klet_virq_body`.*
 
@@ -246,7 +246,7 @@ vOSTD does not switch at that point, unlike OSTD, because the tenant thread's fl
 
 So under vOSTD a tenant thread that stays in user mode is never preempted. Its slice ends and need-preempt is set, but nothing acts on it until the thread enters the kernel and its kernel code reaches a call to `might_preempt`: an upcall, a guard drop or unmask that finds a bit pending, a spawn, or the kernel proper's next yield or sleep. OSTD on a machine does preempt such a thread, by calling `might_preempt` before every entry to user mode, and Asterinas's kernel proper relies on that; its `has_kernel_event` hook reports only signals. This is a difference from OSTD's documented behavior, which the prototype has not closed.
 
-Neither the flag nor the bit can be lost in a race. A flag set while the hook is already running is not lost, as chapter 5 arranged. `user_run` publishes `KLET_USER` and then reads `pending`, while `klet_virq_raise` sets the bit and then reads the state; as with idling, one of the two always sees the other, so a bit raised just as the carrier leaves is never stranded.
+Neither the flag nor the bit can be lost in a race. A flag set while the hook is already running is not lost, as chapter 4 arranged. `user_run` publishes `KLET_USER` and then reads `pending`, while `klet_virq_raise` sets the bit and then reads the state; as with idling, one of the two always sees the other, so a bit raised just as the carrier leaves is never stranded.
 
 ## The kick's interrupt
 

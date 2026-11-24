@@ -3,7 +3,7 @@
 - Status: Draft
 - Author(s): Plucky923
 - Discussion: [PR #7](https://github.com/tatetian/kernelet/pull/7).
-- Affected chapters: [Tasks and virtual CPUs](../accepted-design/tasks-and-virtual-cpus.md), [The kernelet ABI](../accepted-design/the-kernelet-abi.md), [Into user mode and back](../accepted-design/into-user-mode-and-back.md), [Virtual interrupts](../accepted-design/virtual-interrupts.md), and [What it costs](../accepted-design/what-it-costs.md).
+- Affected chapters: [Tasks and virtual CPUs](../tasks-and-virtual-cpus.md), [The kernelet ABI](../the-kernelet-abi.md), [Into user mode and back](../into-user-mode-and-back.md), [Virtual interrupts](../virtual-interrupts.md), and [What it costs](../what-it-costs.md).
 - Implementation or experiments: [Direct-execution measurements](#validation-and-evidence) are available. Checked import, main-prototype integration, and complete validation remain pending.
 
 ## Summary
@@ -32,7 +32,7 @@ Earlier measurements show that per-call FPU saves and loads add about **330–34
 
 **Validate imported FPU state in vOSTD.** A checked import interface reads external state into a private `FpuContext` and validates that allocation. vOSTD controls later writes and uses the same buffer for direct saves and restores. This removes endovisor FPU services, staging copies, and repeated content checks. Linux must restore carrier state before vOSTD resumes after scheduling or kernel FPU borrowing. On an FPU instruction fault, the Host cleans up carrier state and terminates the entire instance.
 
-**vOSTD saves and restores tenant FPU state directly.** It validates imported state and controls later writes, so `XSAVE` and `XRSTOR` can use tenant buffers without an endovisor staging page. Let tenants A and B [share Linux task C, their carrier](../accepted-design/tasks-and-virtual-cpus.md#one-carrier-many-threads). Each stays on C and owns a `FpuContext`; Linux keeps C's separate save area.
+**vOSTD saves and restores tenant FPU state directly.** It validates imported state and controls later writes, so `XSAVE` and `XRSTOR` can use tenant buffers without an endovisor staging page. Let tenants A and B [share Linux task C, their carrier](../tasks-and-virtual-cpus.md#one-carrier-many-threads). Each stays on C and owns a `FpuContext`; Linux keeps C's separate save area.
 
 
 ### Task A makes a syscall and resumes

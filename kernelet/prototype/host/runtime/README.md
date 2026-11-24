@@ -42,7 +42,7 @@ many virtual CPUs the sandbox has and its command line from the three lines
 of `/tests/10-<name>.arg`.
 
 The book explains the endovisor UAPI and the holder in chapter 2; the
-runtimes' measurements of native Linux appear in chapter 15.
+runtimes' measurements of native Linux appear in chapter 14.
 
 ## How they are built
 

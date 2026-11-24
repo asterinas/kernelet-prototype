@@ -6,7 +6,8 @@ It fails, with a line per problem, if:
   - a page listed in src/SUMMARY.md does not exist, or a .md file under src/ is not listed;
   - an internal link does not resolve to an existing page, or to an anchor that page has
     (an explicit `{#id}` on a heading, or mdBook's slug of the heading text);
-  - an Accepted Design external link points anywhere but Linux v6.12 on elixir.bootlin.com;
+  - a design chapter outside proposals links to external sources other than
+    Linux v6.12 on elixir.bootlin.com;
   - a proposal filename, title, or table-of-contents entry lacks its submission date;
   - a code caption names a file of the companion prototype that does not exist, or an
     identifier that does not appear in that file. A caption is any line that holds a code
@@ -44,8 +45,8 @@ ALLOWED_EXTERNAL = ("https://elixir.bootlin.com/linux/v6.12/",)
 
 
 def is_proposal(path):
-    return path.startswith("design-proposals/") and path not in (
-        "design-proposals/README.md", "design-proposals/template.md")
+    return path.startswith("design/proposals/") and path not in (
+        "design/proposals/README.md", "design/proposals/template.md")
 
 
 def slugify(text):
@@ -138,14 +139,16 @@ def main():
     n_links = n_refs = n_figs = 0
     for full, text in texts.items():
         rel = os.path.relpath(full, ROOT)
-        proposal_area = os.path.relpath(full, SRC).startswith("design-proposals" + os.sep)
+        source_rel = os.path.relpath(full, SRC)
+        proposal_area = source_rel.startswith(os.path.join("design", "proposals") + os.sep)
+        design_chapter = source_rel.startswith("design" + os.sep) and not proposal_area
         n_figs += text.count("```mermaid") + text.count("<svg")
         for lineno, line in lines_outside_fences(text):
             for m in LINK_RE.finditer(line):
                 href = m.group(2)
                 n_links += 1
                 if href.startswith("http://") or href.startswith("https://"):
-                    if not proposal_area and not href.startswith(ALLOWED_EXTERNAL):
+                    if design_chapter and not href.startswith(ALLOWED_EXTERNAL):
                         problems.append(f"{rel}:{lineno}: external link outside Linux v6.12 on elixir: {href}")
                     continue
                 if href.startswith("mailto:"):

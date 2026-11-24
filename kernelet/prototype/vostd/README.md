@@ -25,9 +25,11 @@ of entry points the host may call, the boot arguments, and one record per
 virtual CPU. It never calls a Linux symbol. The task layer, the scheduler
 interface, the context switch and the synchronization primitives are real
 OSTD's, ported with as little change as possible; what is virtualized is the
-machine beneath them. The book explains vOSTD in chapters 4 (what a kernelet
-is made of), 8 (tasks and virtual CPUs), 9 (virtual interrupts), 10 (sharing
-a processor) and 13 (what vOSTD adds on top of Linux's page tables).
+machine beneath them. The book explains vOSTD in [The kernelet ABI](../../book/src/design/the-kernelet-abi.md),
+[Tasks and virtual CPUs](../../book/src/design/tasks-and-virtual-cpus.md),
+[Virtual interrupts](../../book/src/design/virtual-interrupts.md),
+[Sharing a processor politely](../../book/src/design/sharing-a-processor-politely.md),
+and [What vOSTD adds on top](../../book/src/design/what-vostd-adds-on-top.md).
 
 ## How it is built
 

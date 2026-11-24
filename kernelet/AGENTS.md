@@ -4,12 +4,21 @@
 
 - These instructions apply within `kernelet/`. References below to the repository root, root Makefile, and code-caption paths mean this directory; run commands here or use `make -C kernelet <target>` from the enclosing repository. The publishing workflow lives at `../.github/workflows/kernelet-book-pages.yml`.
 - `book/` contains the mdBook source, assets, and tools; `prototype/` contains the implementation. Shared instructions and build shortcuts stay at the repository root.
-- The book is titled **Building Kernelets on Linux**. Its introduction precedes two parts: **Accepted Design** and **Design Proposals**.
-- Accepted Design chapters live in `book/src/accepted-design/`. Proposed changes live in `book/src/design-proposals/`, using the guide and template there.
+- The book is titled **Building Kernelets on Linux**. Its top-level sections are **Design**, **Guides**, **Endovisor**, **Host Tools**, and **vOSTD**, with **Design Proposals** nested under Design.
+- Design chapters live in `book/src/design/` and retain their reading order. The motivation and terminology chapter, `why-a-kernel-of-your-own.md`, and the first-kernel walkthrough, `the-first-kernel-we-will-run.md`, live in `book/src/guides/`. Proposed changes live in `book/src/design/proposals/`, using the guide and template there.
+- `book/src/guides/` covers using the complete system. `book/src/endovisor/`, `book/src/host/`, and `book/src/vostd/` document only the interfaces each component exposes and their contracts (UAPI, ABI, CLI, or Rust API as appropriate). Design rationale, implementation mechanisms, cooperation between components, and soundness arguments belong in `design/`.
+- Keep the remaining existing chapters, including interface descriptions, in `design/` for now. Obtain the user's confirmation for each subsequent chapter move or extraction of interface documentation; do not redistribute design chapters by component.
 - Each proposal's filename starts with its original submission date: `YYYY-MM-DD-descriptive-title.md`. Its heading and table-of-contents label start with the same date followed by the title. Keep that date when revising the proposal.
-- A proposal's status distinguishes discussion from acceptance. When accepted, integrate the agreed changes into Accepted Design and the prototype where applicable; retain the proposal and decision rationale as history.
+- A proposal's status distinguishes discussion from acceptance. When accepted, integrate the agreed changes into the relevant design or component chapters and the prototype where applicable; retain the proposal and decision rationale as history.
 - Code-caption paths such as `prototype/linux/endovisor/image.c` are relative to the repository root. Label proposed code separately from excerpts of existing implementation.
 - Run book commands from `book/`, or use the root Makefile's shortcuts. Generated HTML belongs in `book/build/`, never alongside the book source.
+
+## Design explanations and interface specifications
+
+- Follow the distinction documented in [How to read this book](book/src/README.md#design-explanations-and-interface-specifications). Design chapters explain principles, tradeoffs, mechanisms, and cooperation. Component sections independently define the concrete specifications and API references for the interfaces each component exposes.
+- A component specification must state the contract explicitly: declarations, behavior, errors, caller requirements, ownership and lifetimes, concurrency and blocking rules, and compatibility limits as applicable. Check it against the implementation and confirmed requirements; identify unsupported or unresolved behavior.
+- Do not use a design chapter, a simplified excerpt, or a link to either as a substitute for a specification. Design chapters should reference the concrete specifications; specifications may link back only for explanatory background, not to supply required behavior.
+- For an unwritten section, keep at most a one- or two-sentence HTML TODO comment in its README describing its intended content. Do not add visible pending-status notices or lists of work to be done. Existing design chapters remain in `design/`; writing a concrete specification is a separate task from moving or indexing those chapters.
 
 ## Background knowledge in the book
 

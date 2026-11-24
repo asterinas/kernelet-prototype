@@ -15,7 +15,7 @@ This directory has two main parts:
 - [`book/`](book/README.md): the mdBook, including its source, assets, checker, and renderer. Start with [How to read this book](book/src/README.md).
 - [`prototype/`](prototype/README.md): the companion implementation, its build harness, and tests.
 
-The book itself has two parts. **Accepted Design** describes the design the project endorses and the implementation that supports it. **Design Proposals** holds optimizations, alternatives, and new material for discussion and review. Accepted proposals are incorporated into the accepted chapters and implementation; other proposals retain their decision history. Use the [proposal guide](book/src/design-proposals/README.md) and [template](book/src/design-proposals/template.md) to contribute. Each proposal's title and filename start with its submission date, for example `2026-10-27 Improve syscall performance` and `2026-10-27-improve-syscall-performance.md`.
+The book covers system design, usage guides, and the interfaces exposed by Endovisor, Host Tools, and vOSTD. **Design Proposals**, under `design/proposals/`, holds optimizations, alternatives, and new material for discussion and review. Accepted proposals are incorporated into the relevant chapters and implementation; other proposals retain their decision history. Use the [proposal guide](book/src/design/proposals/README.md) and [template](book/src/design/proposals/template.md) to contribute. Each proposal's title and filename start with its submission date, for example `2026-10-27 Improve syscall performance` and `2026-10-27-improve-syscall-performance.md`.
 
 The `Makefile` in this directory provides shortcuts for both parts, and `AGENTS.md` records shared contribution conventions. The repository's Asterinas formatting, spelling, and license-header checks exclude `kernelet/`; use the checks described below for the book and prototype.
 
@@ -24,7 +24,7 @@ The `Makefile` in this directory provides shortcuts for both parts, and `AGENTS.
 ```sh
 make build          # into book/build/; needs mdbook and mdbook-mermaid
 make check          # every link resolves; every file and identifier the captions name exists in prototype/
-make render PAGE=accepted-design/carrier-hooks.html OUT=/tmp/page.png   # screenshot a page and check its diagrams rendered
+make render PAGE=design/carrier-hooks.html OUT=/tmp/page.png   # screenshot a page and check its diagrams rendered
 ```
 
 These commands delegate to `book/Makefile`; they also work directly from `book/`. The generated site starts at `book/build/index.html`.

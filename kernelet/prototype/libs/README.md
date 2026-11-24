@@ -14,8 +14,8 @@ package keys, dependency versions and lints from the Asterinas workspace,
 which this repository is not part of, so the manifests here spell out the same
 values. The sources (`src/lib.rs`) are byte-identical to the tree's.
 
-The book introduces both with the OSTD API in chapter 3 (the kernel we will
-run).
+The book introduces both with the OSTD API in
+[The first kernel we will run](../../book/src/guides/the-first-kernel-we-will-run.md).
 
 ## How they are built
 

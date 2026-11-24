@@ -28,3 +28,28 @@ runnable = false
 
 [preprocessor.mermaid]
 command = "mdbook-mermaid"
+
+# Keep published chapter URLs working after the book reorganization.
+[output.html.redirect]
+"/accepted-design/carrier-hooks.html" = "../design/carrier-hooks.html"
+"/accepted-design/carriers.html" = "../design/carriers.html"
+"/accepted-design/into-user-mode-and-back.html" = "../design/into-user-mode-and-back.html"
+"/accepted-design/sharing-a-processor-politely.html" = "../design/sharing-a-processor-politely.html"
+"/accepted-design/stopping-a-kernelet.html" = "../design/stopping-a-kernelet.html"
+"/accepted-design/tasks-and-virtual-cpus.html" = "../design/tasks-and-virtual-cpus.html"
+"/accepted-design/tenant-memory-on-linux-page-tables.html" = "../design/tenant-memory-on-linux-page-tables.html"
+"/accepted-design/the-endovisor-uapi.html" = "../design/the-endovisor-uapi.html"
+"/accepted-design/the-first-kernel-we-will-run.html" = "../guides/the-first-kernel-we-will-run.html"
+"/design/the-first-kernel-we-will-run.html" = "../guides/the-first-kernel-we-will-run.html"
+"/accepted-design/the-kernelet-abi.html" = "../design/the-kernelet-abi.html"
+"/accepted-design/two-stacks.html" = "../design/two-stacks.html"
+"/accepted-design/virtual-interrupts.html" = "../design/virtual-interrupts.html"
+"/accepted-design/what-it-costs.html" = "../design/what-it-costs.html"
+"/accepted-design/what-vostd-adds-on-top.html" = "../design/what-vostd-adds-on-top.html"
+"/accepted-design/why-a-kernel-of-your-own.html" = "../guides/why-a-kernel-of-your-own.html"
+"/design/why-a-kernel-of-your-own.html" = "../guides/why-a-kernel-of-your-own.html"
+"/design-proposals/2026-10-31-reduce-syscall-overhead.html" = "../design/proposals/2026-10-31-reduce-syscall-overhead.html"
+"/design-proposals/2026-11-08-typed-io.html" = "../design/proposals/2026-11-08-typed-io.html"
+"/design-proposals/2026-11-09-fpu-state-management.html" = "../design/proposals/2026-11-09-fpu-state-management.html"
+"/design-proposals/README.html" = "../design/proposals/README.html"
+"/design-proposals/template.html" = "../design/proposals/template.html"

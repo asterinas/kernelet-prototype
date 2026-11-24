@@ -108,10 +108,10 @@ These are used in one sense throughout the book.
 | **vOSTD** | the framework inside a kernelet: OSTD's interface with a different implementation underneath |
 | **service table** | the fixed list of host functions vOSTD may call; its only way to call the host |
 | **grant** | the physical memory a kernelet has been given, from which it maps its tenant's pages |
-| **virtual CPU** | one of the fixed number of processors a kernelet is given when it is created; the kernelet schedules its tasks on them as a kernel does on real processors (chapter 9) |
-| **carrier** | a Linux task (Linux's word for a thread) that carries one of a kernelet's virtual CPUs: Linux schedules the task, and the kernelet runs its own code and the tenant's programs on it (chapters 2 and 6) |
+| **virtual CPU** | one of the fixed number of processors a kernelet is given when it is created; the kernelet schedules its tasks on them as a kernel does on real processors (chapter 8) |
+| **carrier** | a Linux task (Linux's word for a thread) that carries one of a kernelet's virtual CPUs: Linux schedules the task, and the kernelet runs its own code and the tenant's programs on it (chapters 2 and 5) |
 | **kernelet runtime** | the host program that creates and configures sandboxes, as a container runtime does (chapter 2) |
-| **carrier event hooks** | the two functions Linux calls for a carrier, at a system call and on the way back to user mode, which is where a carrier enters and leaves kernelet code; the core of the one small patch to Linux (chapter 5) |
+| **carrier event hooks** | the two functions Linux calls for a carrier, at a system call and on the way back to user mode, which is where a carrier enters and leaves kernelet code; the core of the one small patch to Linux (chapter 4) |
 
 A term with a chapter beside it is defined in full there.
 

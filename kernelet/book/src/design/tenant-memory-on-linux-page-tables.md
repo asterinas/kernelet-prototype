@@ -87,7 +87,7 @@ Four choices in this code each close a hole.
 
 ## The address-space switch
 
-A carrier must run in the address space of the process whose thread it carries, and `kernelet_switch_mm()`, the first of the patch's two helpers, is how it changes space. A carrier is born with an empty address space of its own; to run a tenant thread it must run in *that process's* space. Two of the lines above call the helper, and both hooks call it, through `klet_space_adopt` below, before they apply the registers on a trip to user mode in which the virtual CPU has activated a different process than the carrier is in (chapter 9).
+A carrier must run in the address space of the process whose thread it carries, and `kernelet_switch_mm()`, the first of the patch's two helpers, is how it changes space. A carrier is born with an empty address space of its own; to run a tenant thread it must run in *that process's* space. Two of the lines above call the helper, and both hooks call it, through `klet_space_adopt` below, before they apply the registers on a trip to user mode in which the virtual CPU has activated a different process than the carrier is in (chapter 8).
 
 <div class="background">
 
@@ -227,7 +227,7 @@ The rewrite is one store, so a lockless reader on another virtual CPU never sees
 
 Two more services complete the set.
 
-**`vm_activate(space)`** only records the space in the virtual CPU's record, where the hooks of chapter 8 find it, and never sleeps, because a full kernel proper, such as Asterinas's, calls `activate` from the handler it runs right after a task switch, with interrupts off, and vOSTD must allow for that.
+**`vm_activate(space)`** only records the space in the virtual CPU's record, where the hooks of chapter 7 find it, and never sleeps, because a full kernel proper, such as Asterinas's, calls `activate` from the handler it runs right after a task switch, with interrupts off, and vOSTD must allow for that.
 
 **`vm_destroy(space)`** clears the whole area, waits for calls in flight, and drops the endovisor's reference on the address space.
 
@@ -255,7 +255,7 @@ static vm_fault_t klet_space_report(struct vm_fault *vmf, bool mkwrite)
 }
 ```
 
-The handler cannot run the kernel proper where it stands, inside Linux's fault path with Linux's lock held. So it records the fault, flags the carrier, and tells Linux the fault is handled. Linux heads back to user mode to retry the instruction, passes through the exit loop, and the resume hook of chapter 8 enters the kernelet with `user_run` returning an exception. The kernel proper's own fault handler runs as a normal task, free to sleep, maps the page with its ordinary cursor, which is a `vm_map`, and calls `execute` again. The retried instruction finds the entry where the processor looks and does not fault a second time.
+The handler cannot run the kernel proper where it stands, inside Linux's fault path with Linux's lock held. So it records the fault, flags the carrier, and tells Linux the fault is handled. Linux heads back to user mode to retry the instruction, passes through the exit loop, and the resume hook of chapter 7 enters the kernelet with `user_run` returning an exception. The kernel proper's own fault handler runs as a normal task, free to sleep, maps the page with its ordinary cursor, which is a `vm_map`, and calls `execute` again. The retried instruction finds the entry where the processor looks and does not fault a second time.
 
 ```mermaid
 sequenceDiagram
@@ -276,7 +276,7 @@ sequenceDiagram
     L->>U: retry, no fault
 ```
 
-One case never reaches the handler. An instruction fetch from a *present* entry marked no-execute raises `SIGSEGV` inside Linux directly (short of protection keys, which the design never sets, a present x86-64 entry cannot forbid a read), and the resume hook turns that signal into an exception as it does for any other (chapter 8).
+One case never reaches the handler. An instruction fetch from a *present* entry marked no-execute raises `SIGSEGV` inside Linux directly (short of protection keys, which the design never sets, a present x86-64 entry cannot forbid a read), and the resume hook turns that signal into an exception as it does for any other (chapter 7).
 
 A fault from Linux's own kernel-mode access to tenant memory is failed, never reported, because no return to user mode would deliver it. Linux itself sometimes reads a task's user memory from kernel mode, for instance on a 32-bit system-call entry. A handler that reported such a fault and waited for the return to user mode would wait forever, since the access is not in user mode; failing it cleanly lets Linux's own error handling turn it into `-EFAULT`, which that code is written to expect.
 

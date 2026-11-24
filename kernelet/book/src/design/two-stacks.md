@@ -1,6 +1,6 @@
 # Two stacks
 
-Chapter 3 drew a picture: the kernel proper's handler for a user program is a loop inside a function, and its local variables live on a kernel stack across every trip to user mode. This chapter is about why Linux cannot give a carrier such a stack, and how the endovisor gives it one anyway.
+[The first kernel we will run](../guides/the-first-kernel-we-will-run.md) drew a picture: the kernel proper's handler for a user program is a loop inside a function, and its local variables live on a kernel stack across every trip to user mode. This chapter is about why Linux cannot give a carrier such a stack, and how the endovisor gives it one anyway.
 
 ## Two kernels, two opinions about the stack
 
@@ -91,7 +91,7 @@ static void klet_coro_prepare(struct klet_carrier *c)
 }
 ```
 
-The first `klet_switch` onto a new stack lands in the kernelet's entry point, through a trampoline. The trampoline moves the carrier pointer from `r12` into the first-argument register and calls `klet_coro_main`, which for virtual CPU 0 is the call to `kernelet_entry` from chapter 4, on a stack the kernelet owns.
+The first `klet_switch` onto a new stack lands in the kernelet's entry point, through a trampoline. The trampoline moves the carrier pointer from `r12` into the first-argument register and calls `klet_coro_main`, which for virtual CPU 0 is the call to `kernelet_entry` from chapter 3, on a stack the kernelet owns.
 
 The endovisor wraps the switch in two functions, one for each direction:
 
@@ -118,7 +118,7 @@ static void klet_leave(struct klet_carrier *c, enum klet_cstate state)
 }
 ```
 
-`klet_enter` is called from exactly two places, the two hooks: the resume hook, which also makes a new carrier's first entry on its way out of the exec (chapter 6), and the syscall hook. Each of those is a frame on the Linux stack, and `klet_switch` parks that frame until the kernelet leaves.
+`klet_enter` is called from exactly two places, the two hooks: the resume hook, which also makes a new carrier's first entry on its way out of the exec (chapter 5), and the syscall hook. Each of those is a frame on the Linux stack, and `klet_switch` parks that frame until the kernelet leaves.
 
 ## Where the stacks come from
 
@@ -145,7 +145,7 @@ u64 klet_kstack_alloc(struct klet_inst *inst)
 	if (inst->kstack_made >= inst->kstack_max)          /* the pool is bounded: max_tasks + nr_vcpus stacks, from KLET_CREATE */
 		return 0;                                       /* vOSTD turns 0 into an out-of-memory error */
 	inst->kstack_made++;
-	base = __vmalloc(KLET_STACK_SIZE, GFP_KERNEL_ACCOUNT);   /* else grow the pool; charged to the sandbox (chapter 6) */
+	base = __vmalloc(KLET_STACK_SIZE, GFP_KERNEL_ACCOUNT);   /* else grow the pool; charged to the sandbox (chapter 5) */
 	k = kzalloc(sizeof(*k), GFP_KERNEL);
 	k->base = base; k->busy = true;
 	list_add_tail(&k->link, &inst->kstack_all);

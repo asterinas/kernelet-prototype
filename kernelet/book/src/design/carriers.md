@@ -1,6 +1,6 @@
 # Carriers
 
-Chapter 5 attached two hooks to a Linux task. This chapter is about those tasks: where they come from, what they inherit, and how the endovisor learns when one dies.
+Chapter 4 attached two hooks to a Linux task. This chapter is about those tasks: where they come from, what they inherit, and how the endovisor learns when one dies.
 
 A **carrier** is a Linux task that carries one of a sandbox's virtual CPUs: it runs the kernelet's code and enters user mode on the kernelet's behalf, and a virtual CPU is one of the processors the kernelet believes it has. Linux schedules carriers like any tasks; it does not know what they carry. A sandbox has a fixed number of them, one per virtual CPU, chosen when it is created, and nothing else of the sandbox is a task: the holder of chapter 2, which created the sandbox, is a process of the runtime and runs no kernelet code. What a virtual CPU is in full comes with the kernelet's own scheduler; for now, a sandbox with one virtual CPU, like the hundred-line kernel's, has one carrier.
 
@@ -45,7 +45,7 @@ static int klet_load_binary(struct linux_binprm *bprm)
 	set_binfmt(&klet_format);
 	finalize_exec(bprm);
 	start_thread(current_pt_regs(), 0, 0);      /* valid 64-bit user registers, though it never uses them */
-	klet_ignore_signals();                      /* every signal that can be ignored is: chapter 8 says why */
+	klet_ignore_signals();                      /* every signal that can be ignored is: chapter 7 says why */
 	set_mask_bits(&current->mm->flags, MMF_DUMPABLE_MASK, SUID_DUMP_DISABLE);   /* not dumpable, whoever the holder is */
 	snprintf(comm, sizeof(comm), "kernelet/%d/%u", inst->slot, vcpu);          /* the name ps shows */
 	strscpy_pad(current->comm, comm, sizeof(current->comm));
@@ -124,7 +124,7 @@ The kernelet boots only when every virtual CPU's carrier has arrived, because a 
 
 Carriers wait in a killable, no-load sleep. `wait_event_state` is Linux's ordinary way to sleep until a condition holds: a waker *wakes* the queue the sleeper named, and the sleeper checks its condition again. The sleep is *killable*, ended only by `SIGKILL`, because a `SIGSTOP` sent to a carrier stays pending until the carrier next heads for user mode and must not end the wait early; and *no-load*, so that a waiting carrier is not counted in the load average.
 
-`klet_enter` runs the kernelet until it asks to run a user program, or leaves for good. For virtual CPU 0 it leads to `kernelet_entry` from chapter 4, and so to the kernel proper's `main`; for the others, to `vcpu_entry`, once the kernel proper has asked for that processor through the service `vcpu_boot`. When the carrier returns from `klet_enter` with a program to run, the hook's loop puts the right registers in place and lets Linux return to user mode. `klet_enter` itself is the subject of the next chapter.
+`klet_enter` runs the kernelet until it asks to run a user program, or leaves for good. For virtual CPU 0 it leads to `kernelet_entry` from chapter 3, and so to the kernel proper's `main`; for the others, to `vcpu_entry`, once the kernel proper has asked for that processor through the service `vcpu_boot`. When the carrier returns from `klet_enter` with a program to run, the hook's loop puts the right registers in place and lets Linux return to user mode. `klet_enter` itself is the subject of the next chapter.
 
 ## Lifelines
 

@@ -32,7 +32,7 @@ A **virtual CPU** is one of the processors a sandbox is given when it is created
 
 ## The kernelet's tasks are its own
 
-vOSTD's task layer is the real OSTD's code: a task is a function, a stack and a saved register set; switching tasks saves one set of callee-saved registers and loads another; waiting is a matter of OSTD's own wait queues. None of it involves Linux, which never sees a kernelet task at all. The two places where the machine shows through are the stack and the context switch, and both are familiar from chapter 7.
+vOSTD's task layer is the real OSTD's code: a task is a function, a stack and a saved register set; switching tasks saves one set of callee-saved registers and loads another; waiting is a matter of OSTD's own wait queues. None of it involves Linux, which never sees a kernelet task at all. The two places where the machine shows through are the stack and the context switch, and both are familiar from chapter 6.
 
 *Simplified from `prototype/vostd/src/task/mod.rs` and `prototype/vostd/src/task/kernel_stack.rs`: `build`, `KernelStack`.*
 
@@ -112,7 +112,7 @@ A machine's processors are started at boot, halted when idle, and interrupted wh
 
 ### Starting
 
-Virtual CPU 0 starts with the sandbox, and the others start when the kernel proper asks for them, as secondary processors do on a machine. The carrier of virtual CPU 0 enters the image at `kernelet_entry`. The others wait in the resume hook's first trip (chapter 6) until the kernel proper, as it would on a machine, registers an entry function for the secondary processors with `register_ap_entry`. vOSTD then calls `vcpu_boot(i)` for each, the endovisor wakes the waiting carrier, and it enters the image at `vcpu_entry`, runs the registered function, and falls into the idle loop below.
+Virtual CPU 0 starts with the sandbox, and the others start when the kernel proper asks for them, as secondary processors do on a machine. The carrier of virtual CPU 0 enters the image at `kernelet_entry`. The others wait in the resume hook's first trip (chapter 5) until the kernel proper, as it would on a machine, registers an entry function for the secondary processors with `register_ap_entry`. vOSTD then calls `vcpu_boot(i)` for each, the endovisor wakes the waiting carrier, and it enters the image at `vcpu_entry`, runs the registered function, and falls into the idle loop below.
 
 ### Idling
 
@@ -177,7 +177,7 @@ When the kernelet's scheduler puts a task on another virtual CPU's run queue, th
 
 A carrier runs many tenant threads in turn, so two things a thread owns must change with it: its address space and its floating-point and vector registers.
 
-A virtual CPU runs the threads of many tenant processes in turn, and each process has its own address space. The kernel proper, as on a machine, activates the right `VmSpace` before it runs a thread; in vOSTD, `activate` records the space in the virtual CPU's record (the `space` field above), and the carrier switches to that process's Linux address space on its next trip to user mode. The switch itself is `klet_space_adopt`, which the chapter on tenant memory builds, and which both hooks of chapter 8 call just before they apply the registers.
+A virtual CPU runs the threads of many tenant processes in turn, and each process has its own address space. The kernel proper, as on a machine, activates the right `VmSpace` before it runs a thread; in vOSTD, `activate` records the space in the virtual CPU's record (the `space` field above), and the carrier switches to that process's Linux address space on its next trip to user mode. The switch itself is `klet_space_adopt`, which the chapter on tenant memory builds, and which both hooks of chapter 7 call just before they apply the registers.
 
 The floating-point and vector registers belong to a tenant thread too. To Linux they are the *carrier's* user state: Linux saves them when it switches the carrier out and restores them, lazily, before the carrier next returns to user mode, and it does not know that the kernelet has put a different thread on the carrier in between.
 

@@ -29,7 +29,7 @@ fn execute<T: UserModeHooks>(&mut self, hooks: &T) -> ReturnReason {
 
 So `user_run` returns `0` for a system call, `1` for an exception and `2` for "an event happened; the kernel may want to know, then call me again". The third case is how a virtual interrupt reaches the kernel while its program runs.
 
-The context it is given is a `RawUserContext`: the eighteen registers of chapter 3, in a fixed order, followed by three fields for exceptions.
+The context it is given is a `RawUserContext`: the eighteen registers introduced in [The first kernel we will run](../guides/the-first-kernel-we-will-run.md), in a fixed order, followed by three fields for exceptions.
 
 On the endovisor's side, `user_run` is the one service that does not use the stub of the last chapter. It records the context, switches to the Linux stack, and does not come back until a hook brings the carrier into the kernelet again:
 
@@ -53,7 +53,7 @@ static u64 klet_svc_user_run(struct klet_user_ctx *ctx)
 }
 ```
 
-The switch lands inside the `klet_enter` that last entered the kernelet on this carrier, which returns into its caller. That caller is always one of the two hooks: on the very first trip it is the resume hook, running on the carrier's way out of the `execveat` that made it (chapter 6), and on every later trip it is whichever hook brought the carrier in.
+The switch lands inside the `klet_enter` that last entered the kernelet on this carrier, which returns into its caller. That caller is always one of the two hooks: on the very first trip it is the resume hook, running on the carrier's way out of the `execveat` that made it (chapter 5), and on every later trip it is whichever hook brought the carrier in.
 
 ## Putting the registers where Linux will find them
 
@@ -201,7 +201,7 @@ Every other signal the drain finds is discarded, with one exception left for Lin
 
 `SIGKILL` and `SIGSTOP` are left in the queue. The first is how the operator and the endovisor end a carrier, and Linux acts on it in the same loop. The second takes effect at the carrier's next return to user mode, where Linux stops it as it stops any task; a stopped carrier is a stopped virtual CPU until `SIGCONT`, and a virtual CPU that does not return to user mode, because it is idle or runs only kernel tasks, keeps running with the stop pending.
 
-Most signals never reach the queue at all, and that is arranged earlier. The binary-format handler of chapter 6 sets every signal but `SIGKILL` and `SIGSTOP`, which cannot be, to be *ignored*, and clears the signal mask, in every carrier, since each arrives by an exec of its own. An ignored signal is discarded the moment it is sent, so an operator's `SIGTERM`, `SIGQUIT` or `SIGTSTP` to a carrier does nothing.
+Most signals never reach the queue at all, and that is arranged earlier. The binary-format handler of chapter 5 sets every signal but `SIGKILL` and `SIGSTOP`, which cannot be, to be *ignored*, and clears the signal mask, in every carrier, since each arrives by an exec of its own. An ignored signal is discarded the moment it is sent, so an operator's `SIGTERM`, `SIGQUIT` or `SIGTSTP` to a carrier does nothing.
 
 The drain alone would not do, for two reasons. A signal whose default action is to end the task without a core dump, `SIGTERM`, `SIGINT`, `SIGPIPE` and their kind, is fatal at the moment it is sent: the sender sees that nothing will catch it and turns it into a `SIGKILL` on the spot ([`complete_signal()`](https://elixir.bootlin.com/linux/v6.12/source/kernel/signal.c#L994)), before any drain. And the drain runs at the top of one pass of the exit loop, while Linux delivers signals later in the same pass if one was pending when the pass began, so a `SIGQUIT` that arrived between the two would dump core and end the carrier.
 
@@ -221,7 +221,7 @@ static void klet_on_resume(struct pt_regs *regs)
 			klet_carrier_die(c);                                 /* stopping a kernelet, later */
 			return;
 		}
-		if (c->state == KLET_NEW) {                              /* the first time, out of the exec: wait for the sandbox's start, then enter (chapter 6) */
+		if (c->state == KLET_NEW) {                              /* the first time, out of the exec: wait for the sandbox's start, then enter (chapter 5) */
 			if (!klet_vcpu_await(c)) { klet_carrier_die(c); return; }
 			klet_enter(c, KLET_RUN_EVENT);
 			continue;
@@ -271,7 +271,7 @@ Page faults on tenant memory take a shorter path through the endovisor's own fau
 
 ## Hello, world
 
-With chapters 4 to 8 built, `make hello` boots Linux in QEMU, loads the module, runs the holder, and this appears in the serial log (the run is `prototype/.build/serial-hello.log`; one line of Linux's own about an out-of-tree module, the lines of a self-test of the interface that the test runs first, and the counters printed at unload are left out):
+With chapters 3 to 7 built, `make hello` boots Linux in QEMU, loads the module, runs the holder, and this appears in the serial log (the run is `prototype/.build/serial-hello.log`; one line of Linux's own about an out-of-tree module, the lines of a self-test of the interface that the test runs first, and the counters printed at unload are left out):
 
 ```
 INIT: loading endovisor.ko
@@ -317,7 +317,7 @@ kernelet: endovisor unloaded
 INIT: done
 ```
 
-The log follows one sandbox from registration to destruction. The holder registers the image as a kind, and the endovisor validates its PIE layout and retains its shared pages (chapter 2); the holder creates the sandbox with a console file and a log file, and forks and execs its one carrier, which the handler turns into one (chapter 6); the endovisor maps the shared code with private relocated data, publishes the offsets by which vOSTD will find its way around Linux, and allocates the grant (chapters 2 and 4), and, every carrier having arrived, boots the kernelet, which enters the image and, before anything else, times a heap allocation and its free and then, at its first log line, a service call that does nothing (the numbers are the subject of the last chapter); the kernel proper creates its address space; the program's `write` arrives by the syscall hook and the kernel proper prints the message through `console_write` to the console file, followed by the message's own newline as an empty line; its `exit` becomes the `stop` service, which arms the sweep that takes a processor back from a virtual CPU left spinning; the carrier dies and its lifeline closes, and the last release returns what the kernelet held, the stack the stopping carrier was still standing on included; the holder reads the sandbox's statistics and closes its descriptor, releasing the remaining resources; the test prints the two files; the module's reference count reaches zero and it unloads.
+The log follows one sandbox from registration to destruction. The holder registers the image as a kind, and the endovisor validates its PIE layout and retains its shared pages (chapter 2); the holder creates the sandbox with a console file and a log file, and forks and execs its one carrier, which the handler turns into one (chapter 5); the endovisor maps the shared code with private relocated data, publishes the offsets by which vOSTD will find its way around Linux, and allocates the grant (chapters 2 and 3), and, every carrier having arrived, boots the kernelet, which enters the image and, before anything else, times a heap allocation and its free and then, at its first log line, a service call that does nothing (the numbers are the subject of the last chapter); the kernel proper creates its address space; the program's `write` arrives by the syscall hook and the kernel proper prints the message through `console_write` to the console file, followed by the message's own newline as an empty line; its `exit` becomes the `stop` service, which arms the sweep that takes a processor back from a virtual CPU left spinning; the carrier dies and its lifeline closes, and the last release returns what the kernelet held, the stack the stopping carrier was still standing on included; the holder reads the sandbox's statistics and closes its descriptor, releasing the remaining resources; the test prints the two files; the module's reference count reaches zero and it unloads.
 
 The build checks that the console file holds the greeting, that the serial log has the exit code, a clean unload, and no Linux error report.
 
