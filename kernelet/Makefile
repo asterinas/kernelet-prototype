@@ -210,7 +210,8 @@ $(PATCH_STAMP): $(PATCH) $(LINUX_DIR)/Makefile
 # that take the disk (about 1.8 GB between them); once the kernel is built, a
 # boot needs only a few megabytes, and no test refuses to run.
 LINUX_TARBALL := linux-$(LINUX_VERSION).tar.xz
-LINUX_URL     := https://cdn.kernel.org/pub/linux/kernel/v6.x/$(LINUX_TARBALL)
+LINUX_MIRROR  ?= https://cdn.kernel.org/pub/linux/kernel/v6.x
+LINUX_URL     := $(LINUX_MIRROR)/$(LINUX_TARBALL)
 MIN_FREE_GB   ?= 6
 
 .PHONY: df-guard

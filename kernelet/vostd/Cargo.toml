@@ -17,3 +17,6 @@ path = "src/lib.rs"
 
 [dependencies]
 ostd-macros = "0.18.1"
+
+[lints]
+workspace = true

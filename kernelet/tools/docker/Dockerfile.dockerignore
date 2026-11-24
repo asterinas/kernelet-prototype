@@ -1,0 +1,8 @@
+**
+!rust-toolchain.toml
+!kernelet/Makefile
+!kernelet/rust-toolchain.toml
+!kernelet/Cargo.toml
+!kernelet/Cargo.lock
+!kernelet/vostd/Cargo.toml
+!kernelet/kernels/*/Cargo.toml
