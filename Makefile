@@ -487,10 +487,11 @@ docs: $(CARGO_OSDK)
 
 .PHONY: format
 format:
-	@# Trim trailing whitespace from all git-tracked, non-patch files
+	@# Trim trailing whitespace outside patches and the separate Kernelet tree
 	@# NOTE: `--git-dir` will suppress "detected dubious ownership in repository" errors
 	@git --git-dir=$$PWD/.git ls-files --no-directory | \
 		grep -v '[.]patch$$' | \
+		grep -v '^kernelet/' | \
 		grep -v '^.claude/skills/aster-code-review$$' `# This is a symbolic link` | \
 		xargs sed -i 's/ *$$//'
 	@
@@ -504,9 +505,9 @@ format:
 check: private WORKSPACE_MEMBER_DIRS = \
 	$(shell ./tools/print_workspace_members.sh)
 check: $(CARGO_OSDK)
-	@# Check if any git-tracked, non-patch files contain trailing whitespace
+	@# Check trailing whitespace outside patches and the separate Kernelet tree
 	@# NOTE: `--git-dir` will suppress "detected dubious ownership in repository" errors
-	@if git --git-dir=$$PWD/.git grep -n ' $$' -- ':!*.patch' ; then \
+	@if git --git-dir=$$PWD/.git grep -n ' $$' -- ':!*.patch' ':!kernelet/**' ; then \
 		echo "Error: Files (as listed above) contain trailing whitespaces"; \
 		exit 1; \
 	fi

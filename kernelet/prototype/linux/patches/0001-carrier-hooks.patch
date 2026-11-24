@@ -1,0 +1,370 @@
+kernelet: two carrier hooks in the generic entry layer, a task_struct pointer,
+a syscall-work bit, a helper for changing a user task's address space, one for
+allocating a tenant process's address space, and the two exports an endovisor
+module needs that Linux does not already make: kernel_clone, and
+flush_tlb_mm_range for the synchronous flush of vm_flush.
+
+And four exports for the endovisor's own image loader and its registration
+of an image: set_memory_ro and set_memory_rox protect the shared PIE mappings,
+set_memory_rw makes private data writable and restores direct-map permissions
+before backing pages are freed, and modules_disabled is checked at registration.
+
+Signed-off-by: kernelet-in-Linux prototype <none@example.com>
+---
+--- /dev/null
++++ b/include/linux/kernelet.h
+@@ -0,0 +1,64 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Carrier event hooks: the two places where a Linux task that carries a
++ * kernelet's virtual CPU (a "carrier") diverts out of the generic entry
++ * layer and into the endovisor.
++ *
++ * A carrier has a non-NULL current->carrier_hooks.  The pointer is
++ * inherited by dup_task_struct() like every other task_struct field, so a
++ * child is a carrier before it exists; the endovisor replaces it with the
++ * child's own table as the first thing the child does.
++ */
++#ifndef _LINUX_KERNELET_H
++#define _LINUX_KERNELET_H
++
++struct pt_regs;
++
++struct carrier_event_hooks {
++	/*
++	 * Called from syscall_trace_enter(), after seccomp, for a system call
++	 * issued by a carrier's user mode; regs hold the number and the
++	 * arguments.  Returns true if the kernelet serviced the call: regs
++	 * then hold what the task returns to user mode with, return value
++	 * included, and Linux's own dispatch is skipped entirely.  Returns
++	 * false to let Linux dispatch the call as for any other task.
++	 */
++	bool (*on_syscall)(struct pt_regs *regs);
++
++	/*
++	 * Called from exit_to_user_mode_loop(), after the TIF_NOTIFY_RESUME
++	 * work and before signals are delivered, whenever a carrier is about
++	 * to return to user mode with exit work pending: for a reason of the
++	 * kernelet's own (a carrier's first entry, a tenant's fault, a
++	 * virtual interrupt) or for one of Linux's (a reschedule, a signal).
++	 * No reason is passed, and several may be pending at once: whoever
++	 * requested the call recorded why in the endovisor's record for the
++	 * task, and the hook reads it there.  The loop may call it more than
++	 * once on one return.
++	 *
++	 * Runs in process context with no lock held; it may sleep, and may
++	 * run kernelet code for as long as it likes.  It may rewrite regs,
++	 * which are what the task returns to user mode with, and must leave
++	 * them alone when it has nothing to do.
++	 */
++	void (*on_resume)(struct pt_regs *regs);
++};
++
++/*
++ * Makes the current *user* task run in `mm`.  A carrier carries a virtual CPU
++ * and runs many tenant threads, so its address space is not its own: it is the
++ * address space of the tenant process the kernelet has activated on that
++ * virtual CPU, and it changes.  Consumes one mm_users reference on `mm` and
++ * returns the mm the task was in, whose reference the caller must drop.
++ */
++struct mm_struct;
++struct mm_struct *kernelet_switch_mm(struct mm_struct *mm);
++
++/*
++ * kernelet_mm_alloc - mm_alloc() with @owner as its owner, added once to the
++ * memory cgroup's multi-generational LRU list; a tenant process's mm.
++ */
++struct task_struct;
++struct mm_struct *kernelet_mm_alloc(struct task_struct *owner);
++
++#endif /* _LINUX_KERNELET_H */
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -56,6 +56,7 @@
+ struct bpf_run_ctx;
+ struct bpf_net_context;
+ struct capture_control;
++struct carrier_event_hooks;
+ struct cfs_rq;
+ struct fs_struct;
+ struct futex_pi_state;
+@@ -1174,6 +1175,11 @@
+ 	struct seccomp			seccomp;
+ 	struct syscall_user_dispatch	syscall_dispatch;
+ 
++#ifdef CONFIG_KERNELET
++	/* Non-NULL if this task is a kernelet carrier. Inherited by fork. */
++	struct carrier_event_hooks	*carrier_hooks;	/* see linux/kernelet.h */
++#endif
++
+ 	/* Thread group tracking: */
+ 	u64				parent_exec_id;
+ 	u64				self_exec_id;
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@ -46,6 +46,7 @@
+ 	SYSCALL_WORK_BIT_SYSCALL_AUDIT,
+ 	SYSCALL_WORK_BIT_SYSCALL_USER_DISPATCH,
+ 	SYSCALL_WORK_BIT_SYSCALL_EXIT_TRAP,
++	SYSCALL_WORK_BIT_KERNELET,
+ };
+ 
+ #define SYSCALL_WORK_SECCOMP		BIT(SYSCALL_WORK_BIT_SECCOMP)
+@@ -55,6 +56,7 @@
+ #define SYSCALL_WORK_SYSCALL_AUDIT	BIT(SYSCALL_WORK_BIT_SYSCALL_AUDIT)
+ #define SYSCALL_WORK_SYSCALL_USER_DISPATCH BIT(SYSCALL_WORK_BIT_SYSCALL_USER_DISPATCH)
+ #define SYSCALL_WORK_SYSCALL_EXIT_TRAP	BIT(SYSCALL_WORK_BIT_SYSCALL_EXIT_TRAP)
++#define SYSCALL_WORK_KERNELET		BIT(SYSCALL_WORK_BIT_KERNELET)
+ #endif
+ 
+ #include <asm/thread_info.h>
+--- a/include/linux/entry-common.h
++++ b/include/linux/entry-common.h
+@@ -41,12 +41,19 @@
+ # define ARCH_SYSCALL_WORK_EXIT		(0)
+ #endif
+ 
++#ifdef CONFIG_KERNELET
++# define KERNELET_SYSCALL_WORK_ENTER	SYSCALL_WORK_KERNELET
++#else
++# define KERNELET_SYSCALL_WORK_ENTER	(0)
++#endif
++
+ #define SYSCALL_WORK_ENTER	(SYSCALL_WORK_SECCOMP |			\
+ 				 SYSCALL_WORK_SYSCALL_TRACEPOINT |	\
+ 				 SYSCALL_WORK_SYSCALL_TRACE |		\
+ 				 SYSCALL_WORK_SYSCALL_EMU |		\
+ 				 SYSCALL_WORK_SYSCALL_AUDIT |		\
+ 				 SYSCALL_WORK_SYSCALL_USER_DISPATCH |	\
++				 KERNELET_SYSCALL_WORK_ENTER |		\
+ 				 ARCH_SYSCALL_WORK_ENTER)
+ #define SYSCALL_WORK_EXIT	(SYSCALL_WORK_SYSCALL_TRACEPOINT |	\
+ 				 SYSCALL_WORK_SYSCALL_TRACE |		\
+--- a/kernel/entry/common.c
++++ b/kernel/entry/common.c
+@@ -9,6 +9,7 @@
+ #include <linux/livepatch.h>
+ #include <linux/audit.h>
+ #include <linux/tick.h>
++#include <linux/kernelet.h>
+ 
+ #include "common.h"
+ 
+@@ -54,6 +55,19 @@
+ 			return ret;
+ 	}
+ 
++#ifdef CONFIG_KERNELET
++	/*
++	 * Offer the system call to the kernelet that this task carries.  After
++	 * seccomp, so that the sandbox's own filter still bounds what the
++	 * carrier can ask of Linux; before the tracepoint, because a serviced
++	 * call never becomes a Linux system call at all.
++	 */
++	if (work & SYSCALL_WORK_KERNELET) {
++		if (current->carrier_hooks->on_syscall(regs))
++			return -1L;
++	}
++#endif
++
+ 	/* Either of the above might have changed the syscall number */
+ 	syscall = syscall_get_nr(current, regs);
+ 
+@@ -98,6 +112,30 @@
+ 
+ 		local_irq_enable_exit_to_user(ti_work);
+ 
++#ifdef CONFIG_KERNELET
++		/*
++		 * Run kernelet code before anything else, and in particular
++		 * before arch_do_signal_or_restart(): a carrier's registers are
++		 * owned by the kernelet, so they must be in place before a
++		 * signal frame is built on top of them.
++		 *
++		 * The resume work goes first, because its first act is to clear
++		 * TIF_NOTIFY_RESUME. Cleared after the hook, the flag would take
++		 * with it a set_notify_resume() the endovisor made while the hook
++		 * ran, for a virtual interrupt the hook had already looked for,
++		 * and the carrier would enter user mode with it pending. Cleared
++		 * before, such a request is in the flags read again at the end of
++		 * this pass, and the loop runs the hook once more.
++		 */
++		if (unlikely(current->carrier_hooks)) {
++			if (ti_work & _TIF_NOTIFY_RESUME) {
++				resume_user_mode_work(regs);
++				ti_work &= ~_TIF_NOTIFY_RESUME;
++			}
++			current->carrier_hooks->on_resume(regs);
++		}
++#endif
++
+ 		if (ti_work & _TIF_NEED_RESCHED)
+ 			schedule();
+ 
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -96,6 +96,7 @@
+ #include <linux/thread_info.h>
+ #include <linux/stackleak.h>
+ #include <linux/kasan.h>
++#include <linux/kernelet.h>
+ #include <linux/scs.h>
+ #include <linux/io_uring.h>
+ #include <linux/bpf.h>
+@@ -1337,6 +1338,86 @@
+ }
+ EXPORT_SYMBOL_IF_KUNIT(mm_alloc);
+ 
++#ifdef CONFIG_KERNELET
++/**
++ * kernelet_mm_alloc - a fresh address space for a kernelet's tenant process
++ * @owner: the task the memory controller charges it to: the sandbox's root
++ *	carrier, which the caller keeps pinned (get_task_struct()) for as long
++ *	as the mm may run, and clears from the mm before it unpins it
++ *
++ * mm_alloc(), the owner, and the one addition to the memory cgroup's
++ * multi-generational LRU list that exec_mmap() and fork make for an mm.  The
++ * owner comes first, because lru_gen_add_mm() resolves the cgroup through it.
++ * mm_init() would have made the calling carrier the owner, without a
++ * reference, and Linux moves the ownership only when that task exits with
++ * this mm as its own, which a carrier that made the space and switched back
++ * never does.  The addition is made here, once, and never per adoption:
++ * lru_gen_add_mm() of an mm already on the list corrupts the list.
++ */
++struct mm_struct *kernelet_mm_alloc(struct task_struct *owner)
++{
++	struct mm_struct *mm = mm_alloc();
++
++	if (!mm)
++		return NULL;
++#ifdef CONFIG_MEMCG
++	WRITE_ONCE(mm->owner, owner);
++#endif
++	lru_gen_add_mm(mm);
++	return mm;
++}
++EXPORT_SYMBOL_GPL(kernelet_mm_alloc);
++
++/**
++ * kernelet_switch_mm - make the current *user* task run in @mm
++ * @mm: the address space to adopt; the caller's mm_users reference is consumed
++ *
++ * Modelled on exec_mmap(), for a task that already has an mm and will change it
++ * again.  An endovisor uses it to put a kernelet's virtual-CPU carrier into the
++ * address space of the tenant process the kernelet has activated on that
++ * virtual CPU; a carrier runs many tenant threads, of more than one tenant
++ * process, so which address space that is changes.
++ *
++ * Returns the mm the task was in, whose mm_users reference now belongs to the
++ * caller, to drop in sleepable context.  tsk->mm and tsk->active_mm stay equal,
++ * which is what exit_mm() asserts, and exit_mm() then drops the reference on
++ * whatever the task ended up in.
++ *
++ * The concurrency-id brackets are not optional: a carrier is a user task with
++ * mm_cid_active set, so swapping tsk->mm without releasing the old mm's cid
++ * would leak one bit of its mm_cidmask per adoption, and after nr_cpu_ids leaks
++ * __mm_cid_try_get() spins for ever under the runqueue lock.
++ */
++struct mm_struct *kernelet_switch_mm(struct mm_struct *mm)
++{
++	struct task_struct *tsk = current;
++	struct mm_struct *old_mm;
++
++	if (WARN_ON_ONCE(!tsk->mm))
++		return NULL;
++	if (tsk->mm == mm)
++		return mm;
++
++	sched_mm_cid_before_execve(tsk);
++
++	task_lock(tsk);
++	local_irq_disable();
++	old_mm = tsk->active_mm;
++	tsk->active_mm = mm;
++	tsk->mm = mm;
++	membarrier_update_current_mm(mm);
++	switch_mm_irqs_off(old_mm, mm, tsk);
++	local_irq_enable();
++	task_unlock(tsk);
++	lru_gen_use_mm(mm);
++
++	sched_mm_cid_after_execve(tsk);
++
++	return old_mm;
++}
++EXPORT_SYMBOL_GPL(kernelet_switch_mm);
++#endif
++
+ static inline void __mmput(struct mm_struct *mm)
+ {
+ 	VM_BUG_ON(atomic_read(&mm->mm_users));
+@@ -2892,6 +2973,10 @@
+ }
+ #endif
+ 
++#ifdef CONFIG_KERNELET
++EXPORT_SYMBOL_GPL(kernel_clone);
++#endif
++
+ #ifdef __ARCH_WANT_SYS_CLONE
+ #ifdef CONFIG_CLONE_BACKWARDS
+ SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,
+--- a/arch/x86/mm/tlb.c
++++ b/arch/x86/mm/tlb.c
+@@ -1033,6 +1033,9 @@
+ 	put_cpu();
+ 	mmu_notifier_arch_invalidate_secondary_tlbs(mm, start, end);
+ }
++#ifdef CONFIG_KERNELET
++EXPORT_SYMBOL_GPL(flush_tlb_mm_range);
++#endif
+ 
+ 
+ static void do_flush_tlb_all(void *info)
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1992,6 +1992,20 @@
+ 
+ source "kernel/Kconfig.kexec"
+ 
++config KERNELET
++	bool "Kernelet carrier hooks (Asterinas kernelets in kernel mode)"
++	depends on GENERIC_ENTRY && X86_64
++	select PREEMPT_NOTIFIERS
++	help
++	  Adds two hooks to the generic syscall entry and exit-to-user-mode
++	  paths, a task_struct pointer and a helper for changing the address
++	  space of a user task, through which a loadable endovisor can carry
++	  Asterinas kernelet virtual CPUs on ordinary Linux tasks.  A task with
++	  a NULL current->carrier_hooks, which is every task on a machine with no
++	  endovisor loaded, is unaffected.
++
++	  If unsure, say N.
++
+ endmenu		# General setup
+ 
+ source "arch/Kconfig"
+--- a/arch/x86/mm/pat/set_memory.c
++++ b/arch/x86/mm/pat/set_memory.c
+@@ -2116,0 +2117 @@
++EXPORT_SYMBOL_GPL(set_memory_ro);
+@@ -2124,6 +2125,7 @@
+ 
+ 	return change_page_attr_clear(&addr, numpages, clr, 0);
+ }
++EXPORT_SYMBOL_GPL(set_memory_rox);
+ 
+ int set_memory_rw(unsigned long addr, int numpages)
+ {
+@@ -2131,0 +2134 @@
++EXPORT_SYMBOL_GPL(set_memory_rw);
+--- a/kernel/module/main.c
++++ b/kernel/module/main.c
+@@ -128,6 +128,7 @@
+ /* Block module loading/unloading? */
+ int modules_disabled;
+ core_param(nomodule, modules_disabled, bint, 0);
++EXPORT_SYMBOL_GPL(modules_disabled);
+ 
+ /* Waiting for a module to finish initializing? */
+ static DECLARE_WAIT_QUEUE_HEAD(module_wq);
