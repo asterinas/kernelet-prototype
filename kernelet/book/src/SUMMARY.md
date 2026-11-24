@@ -2,6 +2,12 @@
 
 [How to read this book](README.md)
 
+# Introduction
+
+- [Kernelets on Linux](introduction/README.md)
+- [Why a kernel of your own](introduction/why-a-kernel-of-your-own.md)
+- [The first kernel we will run](introduction/the-first-kernel-we-will-run.md)
+
 # Design
 
 - [System design](design/README.md)
@@ -24,12 +30,6 @@
     - [2026-10-31 Reduce syscall overhead](design/proposals/2026-10-31-reduce-syscall-overhead.md)
     - [2026-11-08 TypedIO](design/proposals/2026-11-08-typed-io.md)
     - [2026-11-09 FPU state management](design/proposals/2026-11-09-fpu-state-management.md)
-
-# Guides
-
-- [Using kernelets](guides/README.md)
-- [Why a kernel of your own](guides/why-a-kernel-of-your-own.md)
-- [The first kernel we will run](guides/the-first-kernel-we-will-run.md)
 
 # Endovisor
 

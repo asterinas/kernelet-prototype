@@ -4,6 +4,7 @@ This directory contains the mdBook source and its tooling. Start reading at
 [How to read this book](src/README.md).
 
 To contribute an idea,
+| `src/introduction/` | Motivation, terminology, and the Hello World kernel |
 read the [proposal guide](src/design/proposals/README.md) and copy the
 [template](src/design/proposals/template.md) into a dated proposal file.
 
@@ -13,7 +14,6 @@ read the [proposal guide](src/design/proposals/README.md) and copy the
 | `src/README.md`, `src/SUMMARY.md` | Introduction and table of contents |
 | `src/design/` | The accepted design and implementation chapters |
 | `src/design/proposals/` | Proposal guide, template, and dated proposals |
-| `src/guides/` | Motivation, basic concepts, and using the complete system |
 | `src/endovisor/` | Endovisor UAPI and host-service specifications |
 | `src/host/` | Host command reference and specification |
 | `src/vostd/` | vOSTD Rust API reference and specifications |

@@ -24,9 +24,9 @@ This kernel uses the same API as the 100-line kernel to exercise three mechanism
    so that the only way the host gets that processor back is to evict the
    kernelet when the runtime kills the sandbox.
 
-The book uses it in chapter 4 (seccomp before the syscall hook), chapter 7
-(exceptions), chapter 11 (stopping a kernelet: kill and eviction) and chapter
-12 (faults on tenant memory).
+The book uses it in chapter 7 (seccomp before the syscall hook), chapter 10
+(exceptions), chapter 14 (stopping a kernelet: kill and eviction) and chapter
+15 (faults on tenant memory).
 
 ## How it is built and run
 

@@ -3,7 +3,7 @@
 - Status: Draft
 - Author(s): Plucky923
 - Discussion: Not yet available.
-- Affected chapters: [Carrier hooks and patch overview](../carrier-hooks.md), [The first kernel we will run](../../guides/the-first-kernel-we-will-run.md), [Two stacks](../two-stacks.md), [Into user mode and back](../into-user-mode-and-back.md), [The kernelet ABI](../the-kernelet-abi.md), [Tasks and virtual CPUs](../tasks-and-virtual-cpus.md), [Tenant memory on Linux's page tables](../tenant-memory-on-linux-page-tables.md), [Virtual interrupts](../virtual-interrupts.md), [What it costs](../what-it-costs.md), and [Why a kernel of your own](../../guides/why-a-kernel-of-your-own.md).
+- Affected chapters: [Carrier hooks and patch overview](../carrier-hooks.md), [The first kernel we will run](../../introduction/the-first-kernel-we-will-run.md), [Two stacks](../two-stacks.md), [Into user mode and back](../into-user-mode-and-back.md), [The kernelet ABI](../the-kernelet-abi.md), [Tasks and virtual CPUs](../tasks-and-virtual-cpus.md), [Tenant memory on Linux's page tables](../tenant-memory-on-linux-page-tables.md), [Virtual interrupts](../virtual-interrupts.md), [What it costs](../what-it-costs.md), and [Why a kernel of your own](../../introduction/why-a-kernel-of-your-own.md).
 - Implementation or experiments: [Validation and evidence](#validation-and-evidence).
 
 ## Summary

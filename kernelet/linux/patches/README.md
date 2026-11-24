@@ -45,9 +45,9 @@ needs; everything else is the endovisor module. It adds, behind
 It adds 223 lines (202 of them not blank) and removes none, counted with
 `git apply --numstat`.
 
-The book explains the patch in chapter 4 (carrier hooks), `kernel_clone` in
-chapter 5 (carriers), the two address-space helpers in chapter 12, and the
-image loader's exports in chapter 2.
+The book explains the patch in chapter 7 (carrier hooks), `kernel_clone` in
+chapter 8 (carriers), the two address-space helpers in chapter 15, and the
+image loader's exports in chapter 5.
 
 ## How it is applied
 

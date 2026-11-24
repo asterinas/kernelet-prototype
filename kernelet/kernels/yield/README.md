@@ -16,8 +16,8 @@ and as the competitor's independent user-space implementation. The ten live
 registers of the computation make the checksum a test that the stubs restore
 every register and the flags.
 
-The book explains the watch timer and the upcall in chapter 9 (virtual
-interrupts) and the yield stub in chapter 10 (sharing a processor politely).
+The book explains the watch timer and the upcall in chapter 12 (virtual
+interrupts) and the yield stub in chapter 13 (sharing a processor politely).
 
 ## Files
 

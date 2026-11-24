@@ -34,11 +34,11 @@ endovisor refuses to load on a kernel built with it):
 - swap on virtio, `LRU_GEN`, compaction and transparent huge pages, so that
   `make mem-pressure` drives the reclaim paths a distribution kernel has.
 
-The book explains the hooks and this configuration in chapter 4.
+The book explains the hooks and this configuration in chapter 7.
 
 ## Files
 
 | file | what it is |
 |---|---|
 | `config.fragment` | the configuration fragment |
-| `patches/` | the carrier hooks, `0001-carrier-hooks.patch` (chapter 4) |
+| `patches/` | the carrier hooks, `0001-carrier-hooks.patch` (chapter 7) |

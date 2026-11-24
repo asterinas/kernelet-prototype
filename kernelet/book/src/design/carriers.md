@@ -1,8 +1,8 @@
 # Carriers
 
-Chapter 4 attached two hooks to a Linux task. This chapter is about those tasks: where they come from, what they inherit, and how the endovisor learns when one dies.
+Chapter 7 attached two hooks to a Linux task. This chapter is about those tasks: where they come from, what they inherit, and how the endovisor learns when one dies.
 
-A **carrier** is a Linux task that carries one of a sandbox's virtual CPUs: it runs the kernelet's code and enters user mode on the kernelet's behalf, and a virtual CPU is one of the processors the kernelet believes it has. Linux schedules carriers like any tasks; it does not know what they carry. A sandbox has a fixed number of them, one per virtual CPU, chosen when it is created, and nothing else of the sandbox is a task: the holder of chapter 2, which created the sandbox, is a process of the runtime and runs no kernelet code. What a virtual CPU is in full comes with the kernelet's own scheduler; for now, a sandbox with one virtual CPU, like the hundred-line kernel's, has one carrier.
+A **carrier** is a Linux task that carries one of a sandbox's virtual CPUs: it runs the kernelet's code and enters user mode on the kernelet's behalf, and a virtual CPU is one of the processors the kernelet believes it has. Linux schedules carriers like any tasks; it does not know what they carry. A sandbox has a fixed number of them, one per virtual CPU, chosen when it is created, and nothing else of the sandbox is a task: the holder of chapter 5, which created the sandbox, is a process of the runtime and runs no kernelet code. What a virtual CPU is in full comes with the kernelet's own scheduler; for now, a sandbox with one virtual CPU, like the hundred-line kernel's, has one carrier.
 
 ## Why a carrier is not a kernel thread
 
@@ -14,13 +14,13 @@ A carrier is an ordinary user task, not a kernel thread, because it must enter u
 
 **Linux: how tasks are made.** Almost every task is created by one function, [`kernel_clone()`](https://elixir.bootlin.com/linux/v6.12/source/kernel/fork.c#L2745), which underlies `fork`, `clone` and kernel-thread creation. It copies the parent's task structure and then, depending on flags, shares or copies the address space, open files and so on. A child made by `fork` is therefore a copy of its parent in every property Linux keeps on the task: control group, credentials, namespaces, processor mask, priority, resource limits, seccomp filter, and the hooks pointer the patch added.
 
-A task gets a fresh address space only from [`execve`](https://elixir.bootlin.com/linux/v6.12/source/fs/exec.c#L2097). Linux offers the file to each registered **binary-format handler** ([`struct linux_binfmt`](https://elixir.bootlin.com/linux/v6.12/source/include/linux/binfmts.h#L82)) in turn, and the one that recognizes the file replaces the process's address space and sets its starting registers. A module can register a handler of its own. What `exec` keeps of the task and what it resets is the box of chapter 2.
+A task gets a fresh address space only from [`execve`](https://elixir.bootlin.com/linux/v6.12/source/fs/exec.c#L2097). Linux offers the file to each registered **binary-format handler** ([`struct linux_binfmt`](https://elixir.bootlin.com/linux/v6.12/source/include/linux/binfmts.h#L82)) in turn, and the one that recognizes the file replaces the process's address space and sets its starting registers. A module can register a handler of its own. What `exec` keeps of the task and what it resets is the box of chapter 5.
 
 </div>
 
 A carrier has whatever its process set on itself before the exec, because `exec` keeps the task's properties and replaces only its program. For each virtual CPU the holder asks the sandbox for an exec descriptor, forks a child, and the child, after arranging itself with ordinary system calls, executes the descriptor with `execveat`. What the child set is what the carrier has: its control group, which the holder joined before creating the sandbox; its processor mask and priority; its seccomp filter, if the runtime installed one. The holder's child sets the no-new-privileges bit, which the endovisor insists on, and pins itself or installs a filter if its options ask.
 
-A sandbox is charged through its control group: every carrier is in it, so the kernelet's processor time and accounted memory are the tenant's. Chapter 2's box introduced control groups, and `KLET_CREATE` records the holder's group and refuses the exec of an exec descriptor from any other. A child starts in its parent's group, and `exec` does not change it. The processor time the kernelet burns is therefore charged to the tenant by machinery Linux already has, and so is any memory allocated on a carrier with the flag that asks for it (`__GFP_ACCOUNT`). Linux charges the tenant's page tables that way by itself, to the carrier whose fault or mapping causes them; the endovisor charges the grant, the pages of the kernelet's stacks and its heap with the same flag (`GFP_KERNEL_ACCOUNT`), all of them allocated on a carrier of the sandbox.
+A sandbox is charged through its control group: every carrier is in it, so the kernelet's processor time and accounted memory are the tenant's. Chapter 5's box introduced control groups, and `KLET_CREATE` records the holder's group and refuses the exec of an exec descriptor from any other. A child starts in its parent's group, and `exec` does not change it. The processor time the kernelet burns is therefore charged to the tenant by machinery Linux already has, and so is any memory allocated on a carrier with the flag that asks for it (`__GFP_ACCOUNT`). Linux charges the tenant's page tables that way by itself, to the carrier whose fault or mapping causes them; the endovisor charges the grant, the pages of the kernelet's stacks and its heap with the same flag (`GFP_KERNEL_ACCOUNT`), all of them allocated on a carrier of the sandbox.
 
 The endovisor's half is the binary-format handler, where the child becomes the carrier:
 
@@ -45,7 +45,7 @@ static int klet_load_binary(struct linux_binprm *bprm)
 	set_binfmt(&klet_format);
 	finalize_exec(bprm);
 	start_thread(current_pt_regs(), 0, 0);      /* valid 64-bit user registers, though it never uses them */
-	klet_ignore_signals();                      /* every signal that can be ignored is: chapter 7 says why */
+	klet_ignore_signals();                      /* every signal that can be ignored is: chapter 10 says why */
 	set_mask_bits(&current->mm->flags, MMF_DUMPABLE_MASK, SUID_DUMP_DISABLE);   /* not dumpable, whoever the holder is */
 	snprintf(comm, sizeof(comm), "kernelet/%d/%u", inst->slot, vcpu);          /* the name ps shows */
 	strscpy_pad(current->comm, comm, sizeof(current->comm));
@@ -124,7 +124,7 @@ The kernelet boots only when every virtual CPU's carrier has arrived, because a 
 
 Carriers wait in a killable, no-load sleep. `wait_event_state` is Linux's ordinary way to sleep until a condition holds: a waker *wakes* the queue the sleeper named, and the sleeper checks its condition again. The sleep is *killable*, ended only by `SIGKILL`, because a `SIGSTOP` sent to a carrier stays pending until the carrier next heads for user mode and must not end the wait early; and *no-load*, so that a waiting carrier is not counted in the load average.
 
-`klet_enter` runs the kernelet until it asks to run a user program, or leaves for good. For virtual CPU 0 it leads to `kernelet_entry` from chapter 3, and so to the kernel proper's `main`; for the others, to `vcpu_entry`, once the kernel proper has asked for that processor through the service `vcpu_boot`. When the carrier returns from `klet_enter` with a program to run, the hook's loop puts the right registers in place and lets Linux return to user mode. `klet_enter` itself is the subject of the next chapter.
+`klet_enter` runs the kernelet until it asks to run a user program, or leaves for good. For virtual CPU 0 it leads to `kernelet_entry` from chapter 6, and so to the kernel proper's `main`; for the others, to `vcpu_entry`, once the kernel proper has asked for that processor through the service `vcpu_boot`. When the carrier returns from `klet_enter` with a program to run, the hook's loop puts the right registers in place and lets Linux return to user mode. `klet_enter` itself is the subject of the next chapter.
 
 ## Lifelines
 

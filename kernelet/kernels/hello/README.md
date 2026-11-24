@@ -9,7 +9,7 @@ before every `make hello`, `cmp`s `src/lib.rs` and `hello.S` against
 `upstream/`.
 
 The book walks through this kernel and the OSTD API it uses in
-[The first kernel we will run](../../book/src/guides/the-first-kernel-we-will-run.md); the rest of the book is what it takes for this file to
+[The first kernel we will run](../../book/src/introduction/the-first-kernel-we-will-run.md); the rest of the book is what it takes for this file to
 run on Linux.
 
 ## How it is built

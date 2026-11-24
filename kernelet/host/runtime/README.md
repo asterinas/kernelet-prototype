@@ -2,7 +2,7 @@
 
 A kernelet runtime is the user-space program on the host that creates and
 configures sandboxes, as a container runtime does. Here it is one client of
-the endovisor UAPI (`../../endovisor/uapi/endovisor.h`, chapter 2),
+the endovisor UAPI (`../../endovisor/uapi/endovisor.h`, chapter 5),
 `sandbox.c`, and one command around it, `holder.c`: the sandbox's **holder**,
 the process that creates the sandbox, keeps its descriptor open while it lives,
 and destroys it. `holder register NAME IMAGE` hands an image file to
@@ -41,8 +41,8 @@ which reads its steps from `/tests/10-<name>.cmd` (`run`, `start`, `wait`,
 many virtual CPUs the sandbox has and its command line from the three lines
 of `/tests/10-<name>.arg`.
 
-The book explains the endovisor UAPI and the holder in chapter 2; the
-runtimes' measurements of native Linux appear in chapter 14.
+The book explains the endovisor UAPI and the holder in chapter 5; the
+runtimes' measurements of native Linux appear in chapter 17.
 
 ## How they are built
 

@@ -2,11 +2,11 @@
 
 **Building Kernelets on Linux** explains the design and implementation of the **kernelet**: a complete OS kernel that runs *inside* another kernel, and does so *safely*.
 
-The book is organized around system design, usage guides, and the interfaces exposed by the three main components:
+The book is organized around an introduction, system design, and the interfaces exposed by the three main components:
 
 | Part | What it covers |
 |---|---|
-| [Guides](guides/README.md) | Motivation, basic concepts, and using the complete system |
+| [Introduction](introduction/README.md) | Motivation, terminology, and the Hello World kernel |
 | [Design](design/README.md) | The accepted design and implementation, including mechanisms that require several components to cooperate |
 | [Endovisor](endovisor/README.md) | The UAPI exposed to host programs and the host services exposed to vOSTD |
 | [Host Tools](host/README.md) | The command-line interface exposed to users |
@@ -14,7 +14,7 @@ The book is organized around system design, usage guides, and the interfaces exp
 
 [Design proposals](design/proposals/README.md) live within Design. They develop and review optimizations, alternatives, and new material. A proposal is not a promise about the accepted design or the implementation's behavior. Accepted proposals are incorporated into the relevant chapters and, where applicable, the implementation. Declined or withdrawn proposals remain available with the reasons for the decision.
 
-Start with [Why a kernel of your own](guides/why-a-kernel-of-your-own.md) to understand the motivation and concepts, then continue to [System design](design/README.md). To suggest a change, read [Contributing a design proposal](design/proposals/README.md) and use the [proposal template](design/proposals/template.md). Each proposal's title and filename begin with its original submission date, such as `2026-10-27 Improve syscall performance` and `2026-10-27-improve-syscall-performance.md`.
+Start with [Why a kernel of your own](introduction/why-a-kernel-of-your-own.md) for the motivation, then read [The first kernel we will run](introduction/the-first-kernel-we-will-run.md) before moving on to [System design](design/README.md). To suggest a change, read [Contributing a design proposal](design/proposals/README.md) and use the [proposal template](design/proposals/template.md). Each proposal's title and filename begin with its original submission date, such as `2026-10-27 Improve syscall performance` and `2026-10-27-improve-syscall-performance.md`.
 
 To build and boot the example kernel, follow [Building and running](https://github.com/asterinas/kernelet-prototype/blob/main/kernelet/README.md#building-and-running).
 
@@ -52,29 +52,29 @@ The caption's first word says how the block differs from the file. "Simplified" 
 
 Each chapter uses only what the ones before it have built.
 
-The terminology used below is introduced in [Why a kernel of your own](guides/why-a-kernel-of-your-own.md#the-words). [The first kernel we will run](guides/the-first-kernel-we-will-run.md) walks through the hundred-line example kernel used by the design chapters.
+The terminology used below is introduced in [Why a kernel of your own](introduction/why-a-kernel-of-your-own.md#the-words). [The first kernel we will run](introduction/the-first-kernel-we-will-run.md) walks through the hundred-line example kernel used by the design chapters.
 
-1. **System design** introduces the scope and reading order of the design chapters.
-2. **The endovisor UAPI**, its user-space interface, is what a program on the host may ask of the endovisor: the image as a file, the device node and its descriptors, and how user space creates the carriers.
-3. **The kernelet ABI**, its binary interface, is how a kernelet talks to its host from the inside: the tables passed between host and kernelet, the grant, and the first services.
-4. **Carrier hooks and patch overview** adds the two carrier event hooks, where a carrier enters and leaves kernelet code, and lists the rest of the small patch Kernelet applies to Linux.
-5. **Carriers** puts a kernelet on the Linux tasks it runs on.
-6. **Two stacks** is how a kernelet keeps its own stacks on a Linux task.
-7. **Into user mode and back** is the round trip of a system call, after which the hundred-line kernel prints its greeting.
-8. **Tasks and virtual CPUs** gives the kernelet its own tasks and its own scheduler.
-9. **Virtual interrupts** gives it a timer.
-10. **Sharing a processor politely** keeps it from holding a processor against Linux.
-11. **Stopping a kernelet** removes it, even when it will not cooperate.
-12. **Tenant memory on Linux's page tables** puts the tenant's memory in a Linux address space that the kernelet edits only by asking.
-13. **What vOSTD adds on top** is the bookkeeping that keeps that arrangement memory-safe, or *sound*, as introduced in [Why a kernel of your own](guides/why-a-kernel-of-your-own.md#a-kernel-in-two-layers).
-14. **What it costs** gives the numbers.
+4. **System design** introduces the scope and reading order of the design chapters.
+5. **The endovisor UAPI**, its user-space interface, is what a program on the host may ask of the endovisor: the image as a file, the device node and its descriptors, and how user space creates the carriers.
+6. **The kernelet ABI**, its binary interface, is how a kernelet talks to its host from the inside: the tables passed between host and kernelet, the grant, and the first services.
+7. **Carrier hooks and patch overview** adds the two carrier event hooks, where a carrier enters and leaves kernelet code, and lists the rest of the small patch Kernelet applies to Linux.
+8. **Carriers** puts a kernelet on the Linux tasks it runs on.
+9. **Two stacks** is how a kernelet keeps its own stacks on a Linux task.
+10. **Into user mode and back** is the round trip of a system call, after which the hundred-line kernel prints its greeting.
+11. **Tasks and virtual CPUs** gives the kernelet its own tasks and its own scheduler.
+12. **Virtual interrupts** gives it a timer.
+13. **Sharing a processor politely** keeps it from holding a processor against Linux.
+14. **Stopping a kernelet** removes it, even when it will not cooperate.
+15. **Tenant memory on Linux's page tables** puts the tenant's memory in a Linux address space that the kernelet edits only by asking.
+16. **What vOSTD adds on top** is the bookkeeping that keeps that arrangement memory-safe, or *sound*, as introduced in [Why a kernel of your own](introduction/why-a-kernel-of-your-own.md#a-kernel-in-two-layers).
+17. **What it costs** gives the numbers.
 
-Chapters 12 and 13, where the tenant's memory moves onto Linux's page tables without giving up soundness, are the climax; everything before them prepares for them.
+Chapters 15 and 16, where the tenant's memory moves onto Linux's page tables without giving up soundness, are the climax; everything before them prepares for them.
 
 ## Conventions
 
 The book keeps three conventions.
 
-- A few words are used in exactly one sense throughout; the [introductory word table](guides/why-a-kernel-of-your-own.md#the-words) collects the first of them, and the chapter named beside a word there defines it in full.
+- A few words are used in exactly one sense throughout; the [introductory word table](introduction/why-a-kernel-of-your-own.md#the-words) collects the first of them, and the chapter named beside a word there defines it in full.
 - Linux functions are linked to the version 6.12 source on `elixir.bootlin.com` the first time they are named, so that you can read the real code.
 - Most figures are diagrams written as text in the page source; a few are drawings.

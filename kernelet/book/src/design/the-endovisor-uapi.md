@@ -100,7 +100,7 @@ int run_sandbox(int sys_fd, const char *name, unsigned int nr_vcpus, const char 
 }
 ```
 
-The loop in the middle is the heart of the interface. A **carrier**, the [introductory guide](../guides/why-a-kernel-of-your-own.md#the-words)'s term for a Linux task that carries one of the sandbox's virtual CPUs and may run the tenant's programs, is not made by the kernel. The holder forks a child for it, the child arranges itself with ordinary system calls, and then the child *executes* a descriptor the sandbox handed out:
+The loop in the middle is the heart of the interface. A **carrier**, the [introduction](../introduction/why-a-kernel-of-your-own.md#the-words)'s term for a Linux task that carries one of the sandbox's virtual CPUs and may run the tenant's programs, is not made by the kernel. The holder forks a child for it, the child arranges itself with ordinary system calls, and then the child *executes* a descriptor the sandbox handed out:
 
 *Simplified from `host/runtime/sandbox.c`: `start_carrier`, `join_cgroup`.*
 

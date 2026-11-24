@@ -15,7 +15,7 @@ Everything it prints goes to the serial console with `write(2)`, never through
 a stdio buffer, so that nothing is lost when the machine powers off or a test
 crashes the kernel.
 
-Chapter 7 follows a `make hello` boot through its serial log.
+Chapter 10 follows a `make hello` boot through its serial log.
 
 ## How it is built
 
