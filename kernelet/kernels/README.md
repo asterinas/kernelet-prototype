@@ -9,7 +9,7 @@ with that kernel, boots it and checks the serial log; the Makefile's
 
 | directory | the kernel | the book |
 |---|---|---|
-| `hello/` | Asterinas's 100-line Hello World kernel, byte for byte (`upstream/` is the original; the build compares the two before every `make hello`) | [The first kernel we will run](../book/src/introduction/the-first-kernel-we-will-run.md) |
+| `hello/` | the OSDK 100-line Hello World example, compiled directly against vOSTD | [The first kernel we will run](../book/src/introduction/the-first-kernel-we-will-run.md) |
 | `pie/` | concurrent instances of one PIE kind, sharing physical code pages while checking private initialized data, BSS and relocated pointers; destroy and replace an instance while another runs | chapter 5 |
 | `probe/` | demand paging, a refused allocation, exceptions that are not page faults, and the kills and signals that end a sandbox | chapters 10 and 14 |
 | `yield/` | preemption of kernelet code, the watch timer, the forced yield | chapters 12 and 13 |

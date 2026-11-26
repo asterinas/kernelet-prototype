@@ -16,7 +16,7 @@ name = "ostd"
 path = "src/lib.rs"
 
 [dependencies]
-ostd-macros = "0.18.1"
+ostd-macros = { path = "../../ostd/libs/ostd-macros" }
 
 [lints]
 workspace = true

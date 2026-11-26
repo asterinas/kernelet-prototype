@@ -1,2 +1,2 @@
-# make kernel-proper-check requires this example to match its Asterinas source.
+# The OSDK teaching template follows the formatting of the book example.
 disable_all_formatting = true

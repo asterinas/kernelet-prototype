@@ -6,10 +6,12 @@ on:
     branches: [main]
     paths:
       - .github/workflows/kernelet-image.yml
+      - Cargo.toml
       - DOCKER_IMAGE_VERSION
       - rust-toolchain.toml
       - kernelet/tools/docker/**
-      - kernelet/rust-toolchain.toml
+      - ostd/libs/align_ext/Cargo.toml
+      - ostd/libs/ostd-macros/Cargo.toml
       - kernelet/Makefile
       - kernelet/Cargo.lock
       - kernelet/**/Cargo.toml
@@ -44,7 +46,7 @@ jobs:
       - name: Boot and test the teaching kernels
         run: |
           docker run --rm --network none --device /dev/kvm \
-            --volume "$GITHUB_WORKSPACE/kernelet:/workspace/kernelet" "$IMAGE" make test
+            --volume "$GITHUB_WORKSPACE:/workspace" "$IMAGE" make test
 
       - name: Publish to Docker Hub
         if: github.repository == 'asterinas/kernelet-prototype' && github.ref == 'refs/heads/main'

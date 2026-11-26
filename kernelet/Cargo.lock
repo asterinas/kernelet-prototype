@@ -5,8 +5,6 @@ version = 4
 [[package]]
 name = "align_ext"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1c330e503236d0b06386ae6cc42a513ef1ccc23c52b603c1b52f018564faf44"
 
 [[package]]
 name = "cfg-if"
@@ -50,9 +48,7 @@ dependencies = [
 
 [[package]]
 name = "ostd-macros"
-version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8bb645ff791594debccf063bf226d1095cca3caa8a642412c4ea6c48cfa629c"
+version = "0.19.0"
 dependencies = [
  "proc-macro2",
  "quote",

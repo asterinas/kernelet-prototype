@@ -96,7 +96,6 @@ KBUILD := $(MAKE) -C $(LINUX_DIR) ARCH=$(ARCH)
 
 # --- kernelet images ---------------------------------------------
 PATCH      := $(CURDIR)/linux/patches/0001-carrier-hooks.patch
-TEMPLATE   := $(CURDIR)/kernels/hello/upstream
 CARGO      ?= cargo
 RUST_TARGET := x86_64-unknown-none
 CARGO_DIR  := $(BUILD)/cargo
@@ -106,7 +105,7 @@ CARGO_DIR  := $(BUILD)/cargo
 KLET_KERNEL ?= hello
 STATICLIB  := $(CARGO_DIR)/$(RUST_TARGET)/release/lib$(KLET_KERNEL).a
 ifeq ($(KLET_KERNEL),hello)
-KERNEL_PROPER_DEP := kernel-proper-check $(CURDIR)/kernels/hello/hello
+KERNEL_PROPER_DEP := $(CURDIR)/kernels/hello/hello
 else ifeq ($(KLET_KERNEL),probe)
 KERNEL_PROPER_DEP := $(CURDIR)/kernels/probe/probe
 else ifeq ($(KLET_KERNEL),yieldk)
@@ -137,7 +136,7 @@ KLET_BUILD_STD := -Zbuild-std=core,alloc,compiler_builtins \
                   -Zbuild-std-features=compiler-builtins-mem
 
 .PHONY: all linux config initramfs run guest clean-runtime distclean module stage-module
-.PHONY: patch kernel-proper-check image endovisor-module runtime
+.PHONY: patch image endovisor-module runtime
 .PHONY: stage-hello stage-probe stage-yield hello probe yield
 .PHONY: check-log check-probe-log check-probe-seccomp check-probe-klet-kill check-yield-log
 
@@ -294,7 +293,7 @@ CLANG_FORMAT ?= clang-format
 .PHONY: check-format check-rust-format check-c-format clippy
 check-format: check-rust-format check-c-format
 
-check-rust-format: kernel-proper-check
+check-rust-format:
 	$(CARGO) fmt --all -- --check
 
 check-c-format: SHELL := /bin/bash
@@ -303,18 +302,11 @@ check-c-format:
 	git ls-files -z -- '*.c' '*.h' | xargs -0 -r $(CLANG_FORMAT) --dry-run --Werror
 
 # Clippy needs the same embedded tenant programs and target as an image build.
-clippy: $(CRATES_STAMP) $(PROBE_ELF) $(YIELD_ELF) $(SCHED_ELF) $(CURDIR)/kernels/mem/mem
+clippy: $(CRATES_STAMP) $(HELLO_ELF) $(PROBE_ELF) $(YIELD_ELF) $(SCHED_ELF) $(CURDIR)/kernels/mem/mem
 	CARGO_TARGET_DIR=$(CARGO_DIR) RUSTFLAGS="$(KLET_RUSTFLAGS)" \
 	OSTD_TASK_STACK_SIZE_IN_PAGES=$(KLET_STACK_PAGES) $(CARGO) clippy \
 	    --locked --offline --release --target $(RUST_TARGET) $(KLET_BUILD_STD) \
-	    --no-deps --workspace --exclude hello -- -D warnings
-
-# The kernel proper is never edited: it must stay byte-identical to the
-# template in the Asterinas tree.
-kernel-proper-check:
-	cmp $(CURDIR)/kernels/hello/src/lib.rs $(TEMPLATE)/lib.rs
-	cmp $(CURDIR)/kernels/hello/hello.S $(TEMPLATE)/hello.S
-	@echo "kernel proper: identical to the template"
+	    --no-deps --workspace -- -D warnings
 
 # The tenant program, assembled exactly as the book says. It has to sit next to
 # the kernel proper because `include_bytes!("../hello")` says so.

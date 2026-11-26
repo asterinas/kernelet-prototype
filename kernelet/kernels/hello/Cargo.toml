@@ -1,9 +1,4 @@
-# The kernel proper: Asterinas's 100-line Hello World kernel, unchanged.
-#
-# `src/lib.rs` and `hello.S` are byte-for-byte copies of the Asterinas tree's
-# osdk/tests/examples_in_book/write_a_kernel_in_100_lines_templates/ at commit
-# ab9a4cfdc, kept in `upstream/`, and the Makefile `cmp`s them against those
-# before every build of this kernel.
+# Compile the OSDK teaching kernel against vOSTD.
 
 [package]
 name = "hello"

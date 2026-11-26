@@ -10,11 +10,11 @@ From the repository root, run Hello World in the Kernelet development image on a
 
 ```sh
 docker run --rm --device /dev/kvm --network none \
-    -v "$PWD/kernelet:/workspace/kernelet" \
+    -v "$PWD:/workspace" \
     "asterinas/kernelet:$(cat DOCKER_IMAGE_VERSION)" make hello
 ```
 
-Use `make test` in place of `make hello` to run the full teaching kernel suite. The image includes the Rust toolchain, Cargo dependencies, QEMU, guest build tools, and Linux 6.12 sources. Build artifacts and serial logs appear in the mounted checkout under `.build/`.
+Use `make test` in place of `make hello` to run the full teaching kernel suite. The image includes the Rust toolchain, Cargo dependencies, QEMU, guest build tools, and Linux 6.12 sources. Build artifacts and serial logs appear in the mounted checkout under `kernelet/.build/`.
 
 The [image workflow](../.github/workflows/kernelet-image.yml) runs when a push to `main` changes the image inputs or the workflow itself. It can also be started manually. On `main` it publishes to Docker Hub using `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` with write access to `asterinas/kernelet`. The base image and published image both use the tag in `DOCKER_IMAGE_VERSION`.
 
@@ -22,7 +22,7 @@ The [image workflow](../.github/workflows/kernelet-image.yml) runs when a push t
 
 Run these commands from `kernelet/` on an x86-64 Linux host with QEMU and access to `/dev/kvm`. The first build needs network access and at least 6 GiB free on the filesystem containing `.build/`.
 
-Install rustup, GCC with static libc and pthread support, GNU Make, binutils, flex, bison, bc, Perl, libelf headers, Python 3, curl, patch, tar, xz, gzip, and `qemu-system-x86_64`. Rustup selects the toolchain in `rust-toolchain.toml`.
+Install rustup, GCC with static libc and pthread support, GNU Make, binutils, flex, bison, bc, Perl, libelf headers, Python 3, curl, patch, tar, xz, gzip, and `qemu-system-x86_64`. Rustup selects the toolchain in the repository root’s `rust-toolchain.toml`.
 
 ```sh
 make hello    # Build and boot the Hello World kernel, then check its serial log

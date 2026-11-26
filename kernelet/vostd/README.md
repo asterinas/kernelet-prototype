@@ -46,7 +46,7 @@ endovisor's pool hands out.
 
 | file | what it is | chapter |
 |---|---|---|
-| `Cargo.toml` | the crate; its one dependency is `ostd-macros` from crates.io | 5 |
+| `Cargo.toml` | the crate; its one dependency is `ostd-macros` from `ostd/libs/` in this checkout | 5 |
 | `src/lib.rs` | the crate root; `kernelet_entry` (vCPU 0) and `vcpu_entry` (the others) | 6, 11 |
 | `src/abi.rs` | the image ABI: `BootArgs`, `Services`, `EntryTable`, `VcpuRec`, `SpaceRec`, `MemStats`, `kernelet_entry_table` | 6 |
 | `src/vcpu.rs` | finding the vCPU record without a call (`vrec`), the mirror of the guard depth into Linux's preemption count, the upcall stub `klet_virq_entry` and `klet_virq_body`, idle, kick, yield, `vcpu_on_spin`; `publish_stack_limit`, which tells the endovisor the bound of the current kernelet stack | 9, 11, 12, 13 |

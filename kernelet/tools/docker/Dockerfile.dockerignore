@@ -1,7 +1,9 @@
 **
+!Cargo.toml
 !rust-toolchain.toml
+!ostd/libs/align_ext/**
+!ostd/libs/ostd-macros/**
 !kernelet/Makefile
-!kernelet/rust-toolchain.toml
 !kernelet/Cargo.toml
 !kernelet/Cargo.lock
 !kernelet/vostd/Cargo.toml

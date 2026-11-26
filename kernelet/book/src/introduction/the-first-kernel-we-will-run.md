@@ -2,7 +2,7 @@
 
 This chapter reads the kernel the book is built around: Asterinas's teaching example, a kernel in about a hundred lines of safe Rust.
 
-The kernel is never edited. It is in this repository as `kernels/hello/src/lib.rs`. Before every build of the image, the build compares it byte for byte with a copy of the original, taken from the Asterinas tree at commit `ab9a4cfdc`. That it needs no edit to run inside Linux is the claim the rest of the book makes good.
+The Kernelet crate's `kernels/hello/src/lib.rs` and `kernels/hello/hello.S` link to the OSDK teaching example in this checkout. Building it against vOSTD lets the same kernel run inside Linux.
 
 The excerpts below drop only the file's comments and imports; of what the imports bring, `align_up` comes from the small `align_ext` crate, and `println!` is OSTD's, writing to the console.
 
@@ -47,8 +47,7 @@ The kernel places the program in memory rather than loading it. A real kernel re
 ```rust
 #[ostd::main]
 pub fn main() {
-    let program_binary = include_bytes!("../hello");
-    let vm_space = Arc::new(create_vm_space(program_binary));
+    let vm_space = Arc::new(create_vm_space(PROGRAM_BINARY));
     vm_space.activate();
     let user_task = create_user_task(vm_space);
     user_task.run();
@@ -77,7 +76,6 @@ fn create_vm_space(program: &[u8]) -> VmSpace {
     };
 
     let vm_space = VmSpace::new();
-    const MAP_ADDR: Vaddr = 0x0040_0000;
     let preempt_guard = disable_preempt();
     let mut cursor = vm_space
         .cursor_mut(&preempt_guard, &(MAP_ADDR..MAP_ADDR + nbytes))
@@ -121,7 +119,7 @@ fn create_user_task(vm_space: Arc<VmSpace>) -> Arc<Task> {
             let user_context = user_mode.context_mut();
             if ReturnReason::UserSyscall == return_reason {
                 let vm_space = current.data().downcast_ref::<Arc<VmSpace>>().unwrap();
-                handle_syscall(user_context, &vm_space);
+                handle_syscall(user_context, vm_space);
             }
         }
     }
@@ -131,7 +129,6 @@ fn create_user_task(vm_space: Arc<VmSpace>) -> Arc<Task> {
 
 fn create_user_context() -> UserContext {
     let mut user_ctx = UserContext::default();
-    const ENTRY_POINT: Vaddr = 0x0040_1000;
     user_ctx.set_rip(ENTRY_POINT);
     user_ctx
 }

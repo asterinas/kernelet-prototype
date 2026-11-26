@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - kernelet/book/**
+      - osdk/tests/examples_in_book/write_a_kernel_in_100_lines_templates/**
       - .github/actions/setup-kernelet-book/**
       - .github/workflows/check_kernelet_book.yml
 

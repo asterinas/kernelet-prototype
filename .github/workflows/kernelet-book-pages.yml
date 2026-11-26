@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - kernelet/**
+      - osdk/tests/examples_in_book/write_a_kernel_in_100_lines_templates/**
       - .github/workflows/kernelet-book-pages.yml
       - .github/actions/setup-kernelet-book/**
   workflow_dispatch:
